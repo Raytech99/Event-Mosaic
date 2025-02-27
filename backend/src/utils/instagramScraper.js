@@ -151,12 +151,18 @@ async function scrapeInstagramPosts(username, credentials) {
           'article img[style*="object-fit"]'
         );
 
+        const dateElement = document.querySelector("time[datetime]");
+        const postDate = dateElement
+          ? dateElement.getAttribute("datetime")
+          : null;
+
         return {
           caption: captionElement
             ? captionElement.textContent
             : "No caption found",
           imageUrl: imgElement ? imgElement.src : null,
           url: window.location.href,
+          date: postDate || "Date not found",
         };
       });
 
