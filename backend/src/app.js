@@ -1,22 +1,24 @@
 const express = require("express");
 const cors = require("cors");
 const eventsRoutes = require("./routes/eventsRoutes");
+const authRoutes = require("./routes/authRoutes"); // Import authentication routes
 
-// Create Express app
 const app = express();
 
-// Apply middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.json());
 
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Instagram Scraper API" });
 });
 
-// Use Events routes
+// Ensure correct route registration
 app.use("/api/events", eventsRoutes);
+app.use("/api/auth", authRoutes); 
 
-// Export the app
 module.exports = app;
+
+
+
+

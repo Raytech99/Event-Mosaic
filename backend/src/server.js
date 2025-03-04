@@ -1,9 +1,10 @@
-const app = require('./app');
-require('dotenv').config();
+const app = require("./app");
+const connectDB = require("./db");  // Import database connection
+require("dotenv").config();
 
-const hostname = '127.0.0.1';
+connectDB();  // Connect to MongoDB
+
 const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
 });
