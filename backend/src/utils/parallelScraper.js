@@ -29,7 +29,7 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     },
     batches: [],
   };
-
+  
   console.log(
     `Starting parallel scraping for ${usernames.length} accounts with concurrency limit of ${concurrencyLimit}`
   );

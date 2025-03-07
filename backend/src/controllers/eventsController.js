@@ -60,7 +60,7 @@ exports.getInstagramPosts = async (req, res) => {
 exports.getMultipleInstagramPosts = async (req, res) => {
   console.log("GET /api/events/instagram-multiple ", req.query);
   try {
-    const { usernames, concurrency, postLimit, timeThreshold = 12 } = req.query;
+    const { usernames, concurrency, postLimit, timeThreshold } = req.query;
 
     if (!usernames) {
       return res.status(400).json({

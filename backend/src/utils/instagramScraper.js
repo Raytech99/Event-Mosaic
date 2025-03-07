@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer");
 const { performance } = require("perf_hooks");
 const fs = require("fs");
 const path = require("path");
+const { time } = require("console");
 
 // Config paths
 const COOKIES_DIR = path.join(__dirname, "cookies");
@@ -54,6 +55,7 @@ class InstagramScraper {
     }
 
     try {
+      // WARNING: Race condition risk - multiple instances writing to the same cookie file
       const cookies = JSON.parse(fs.readFileSync(this.cookiesPath, "utf8"));
       await page.setCookie(...cookies);
 
@@ -161,7 +163,7 @@ class InstagramScraper {
   // Get posts directly from profile page
   async getProfilePosts(page, username, postLimit = 5) {
     this.metrics.navigation.start = performance.now();
-    this.metrics.processing.start = performance.now(); 
+    this.metrics.processing.start = performance.now();
 
     try {
       // Navigate to profile page
@@ -182,43 +184,54 @@ class InstagramScraper {
         ).slice(0, limit);
 
         for (const link of postLinks) {
-          // Find the article or media container for each post
-          const article = link.closest("article") || link.parentElement;
+          try {
+            // Find the article or media container for each post
+            const article = link.closest("article") || link.parentElement;
 
-          // Find image
-          const img = article.querySelector('img[src*="instagram"]');
+            // Find image
+            const img = article.querySelector('img[src*="instagram"]');
 
-          // Try to find caption if available (limited on profile page)
-          const captionSpans = article.querySelectorAll("span");
-          let caption = "Caption not available in preview";
-          for (const span of captionSpans) {
-            if (span.textContent && span.textContent.length > 10) {
-              caption = span.textContent;
-              break;
+            // Try to find caption if available 
+            const captionSpans = article.querySelectorAll("span");
+            let caption = "Caption not available in preview";
+            for (const span of captionSpans) {
+              if (span.textContent && span.textContent.length > 10) {
+                caption = span.textContent;
+                break;
+              }
             }
+
+            // Find post date
+            let date = new Date().toISOString();
+            const timeElement = article.querySelector("time");
+            if (timeElement && timeElement.getAttribute) {
+              const dateAttr = timeElement.getAttribute("datetime");
+              if (dateAttr) {
+                date = dateAttr;
+              }
+            }
+
+            results.push({
+              caption: caption,
+              imageUrl: img ? img.src : null,
+              url: link.href,
+              date: date,
+            });
+          } catch (err) {
+            // If one post fails, continue with others
+            console.error(`Error processing post: ${err}`);
           }
-
-          // Get time if available
-          const time = article.querySelector("time");
-          const date = time
-            ? time.getAttribute("datetime")
-            : new Date().toISOString();
-
-          results.push({
-            caption: caption,
-            imageUrl: img ? img.src : null,
-            url: link.href,
-            date: date,
-          });
         }
 
         return results;
       }, postLimit);
 
-      // If we couldn't get full data from preview, collect minimal data
+      
       if (posts.length === 0) {
+        console.log("Failed to get full post data, collecting minimal data");
         // Fallback to just collecting links
         const postLinks = await page.evaluate((limit) => {
+          console.log("Collecting minimal post data");
           const links = document.querySelectorAll('a[href*="/p/"]');
           return Array.from(links)
             .slice(0, limit)
@@ -230,6 +243,7 @@ class InstagramScraper {
             }));
         }, postLimit);
 
+        console.log("Minimal post data collected ", postLinks);
         return postLinks;
       }
 
@@ -250,8 +264,11 @@ class InstagramScraper {
   }
 
   // Scrape posts from an Instagram profile
-  async scrapeProfile(username, postLimit = 5) {
+  async scrapeProfile(username, options = {}) {
     this.metrics.total.start = performance.now();
+
+    const postLimit = options.postLimit || 5;
+    const timeThreshold = options.timeThreshold || 24;
 
     if (!username) {
       return {
@@ -278,8 +295,7 @@ class InstagramScraper {
       }
 
       // Get all posts data directly from the profile page (optimized method)
-      const posts = await this.getProfilePosts(page, username, postLimit);
-
+      let posts = await this.getProfilePosts(page, username, postLimit);
       // Track post metrics
       posts.forEach((post) => {
         this.metrics.postDetails.push({
@@ -296,6 +312,8 @@ class InstagramScraper {
         success: true,
         username,
         posts,
+        recentPostsCount: this.metrics.recentPostsCount,
+        message: "Successfully scraped Instagram posts",
         metrics: {
           total: this.metrics.total.duration,
           login: this.metrics.login.duration,
