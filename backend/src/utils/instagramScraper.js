@@ -240,4 +240,5 @@ async function loginToInstagram(page, credentials) {
   }
 }
 
+console.log("exp")
 module.exports = { scrapeInstagramPosts };
