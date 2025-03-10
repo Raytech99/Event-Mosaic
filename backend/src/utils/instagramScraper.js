@@ -217,7 +217,7 @@ class InstagramScraper {
 
       await this.sleep(1000);
 
-      // Extract post data 
+      // Extract post data
       const postData = await page.evaluate(() => {
         const cleanText = (text) => {
           if (!text) return "";
@@ -234,14 +234,14 @@ class InstagramScraper {
           }
         }
 
-        // Get caption 
+        // Get caption
         let caption = "No caption available";
         const captionElement = document.querySelector("div._a9zr");
         if (captionElement && captionElement.textContent) {
           caption = cleanText(captionElement.textContent);
         }
 
-        // Get image 
+        // Get image
         let imageUrl = null;
         const imageMetaTag = document.querySelector(
           'meta[property="og:image"]'
@@ -294,6 +294,7 @@ class InstagramScraper {
       };
     }
   }
+
   // Scrape posts from an Instagram profile
   async scrapeProfile(username, options = {}) {
     this.metrics.total.start = performance.now();
@@ -318,7 +319,6 @@ class InstagramScraper {
       browser = browserData.browser;
       page = browserData.page;
 
-      // Try to use existing session
       const isSessionValid = await this.loadCookies(page);
 
       // Login if needed
@@ -327,26 +327,21 @@ class InstagramScraper {
       }
 
       // Step 1: Get post URLs quickly from the profile page
-      console.log(`Fetching up to ${maxPosts} post URLs from ${username}...`);
       const postUrls = await this.getProfilePostUrls(page, username, maxPosts);
 
       if (postUrls.length === 0) {
         throw new Error(`No posts found for ${username}`);
       }
 
-      console.log(
-        `Found ${postUrls.length} posts, processing in batches of ${batchSize}`
-      );
-
       // Step 2: Process post URLs in batches
       const processedPosts = [];
       const recentPosts = [];
 
-      // Calculate threshold date
       const thresholdDate = new Date();
       thresholdDate.setHours(thresholdDate.getHours() - timeThreshold);
+      const thresholdISOString = thresholdDate.toISOString();
 
-      // Create multiple pages for parallel processing 
+      // Create multiple pages for parallel processing
       const numPages = Math.min(batchSize, postUrls.length);
       const pages = await Promise.all(
         Array(numPages)
@@ -360,7 +355,6 @@ class InstagramScraper {
           })
       );
 
-      // Early termination variables
       let pinnedPostsProcessed = false;
       const pinnedPostCount = 3; // Assuming the first 3 posts could be pinned
 
@@ -370,11 +364,6 @@ class InstagramScraper {
 
         // Get current batch
         const batchUrls = postUrls.slice(i, i + batchSize);
-        console.log(
-          `\nProcessing batch ${Math.floor(i / batchSize) + 1}: ${
-            batchUrls.length
-          } posts`
-        );
 
         // Process batch in parallel
         const batchPromises = batchUrls.map((url, index) =>
@@ -390,52 +379,39 @@ class InstagramScraper {
         // Add to processed posts
         processedPosts.push(...batchResults);
 
-        // Filter for recent posts
+        let batchHasRecentPosts = false;
+        let batchHasNonRecentPosts = false;
         const newRecentPosts = [];
-        let foundNonRecentPostAfterPinned = false;
 
-        for (const post of batchResults) {
+        // Process all posts in batch
+        for (let j = 0; j < batchResults.length; j++) {
+          const post = batchResults[j];
           try {
-            const postDate = new Date(post.date);
-            const isRecent =
-              !isNaN(postDate.getTime()) && postDate >= thresholdDate;
-            console.log(
-              `Post: ${post.url}, Date: ${post.date}, Recent: ${isRecent}`
-            );
+            // Direct string comparison when possible
+            const isRecent = post.date >= thresholdISOString;
 
             if (isRecent) {
               newRecentPosts.push(post);
-            } else if (pinnedPostsProcessed) {
-              // If we've processed the pinned posts and found a non-recent post, flag it
-              foundNonRecentPostAfterPinned = true;
-              console.log(
-                `Found non-recent post after pinned section, will terminate after this batch.`
-              );
-              // Don't break here, continue processing the current batch
+              batchHasRecentPosts = true;
+            } else {
+              batchHasNonRecentPosts = true;
             }
           } catch (e) {
-            console.error(`Error filtering post date: ${post.date}`, e);
+            console.error(`Error processing date: ${e.message}`);
           }
         }
 
         // Add to recent posts
         recentPosts.push(...newRecentPosts);
 
-        console.log(
-          `\nFound ${newRecentPosts.length} recent posts in this batch. Total: ${recentPosts.length}`
-        );
-
         // Check if we've processed the potentially pinned posts
         const totalProcessedPosts = processedPosts.length;
         if (!pinnedPostsProcessed && totalProcessedPosts >= pinnedPostCount) {
           pinnedPostsProcessed = true;
-          console.log(
-            `\nProcessed ${pinnedPostCount} potentially pinned posts, now checking for chronological posts.`
-          );
         }
 
-        // If we found a non-recent post after the pinned section, terminate early
-        if (foundNonRecentPostAfterPinned) {
+        // If we're past the pinned posts and found a non-recent post, terminate
+        if (pinnedPostsProcessed && batchHasNonRecentPosts) {
           console.log(
             `\nTerminating early: Found a non-recent post after processing pinned content.`
           );
@@ -451,6 +427,7 @@ class InstagramScraper {
       // Sort recent posts by date (newest first)
       recentPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+      // Track post metrics
       recentPosts.forEach((post) => {
         this.metrics.postDetails.push({
           url: post.url,
