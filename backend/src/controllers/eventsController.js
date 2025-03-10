@@ -45,7 +45,6 @@ exports.getInstagramPosts = async (req, res) => {
       timeThreshold: parseInt(timeThreshold),
       timeframe: `Posts from the last ${timeThreshold} hours`,
       data: result.posts,
-      performance: result.metrics,
     });
   } catch (error) {
     console.error("Error in Instagram scraper controller:", error);
@@ -97,26 +96,13 @@ exports.getMultipleInstagramPosts = async (req, res) => {
     }
 
     // Scrape multiple Instagram accounts in parallel
-    const { results, totalRecentPosts, performance } =
-      await scrapeMultipleAccounts(usernameArray, credentials, options);
+    const response = await scrapeMultipleAccounts(
+      usernameArray,
+      credentials,
+      options
+    );
 
-    // Count successful scrapes
-    const successCount = results.filter((result) => result.success).length;
-
-    return res.status(200).json({
-      success: true,
-      total: results.length,
-      successCount,
-      timeThreshold: parseInt(timeThreshold),
-      timeframe: `Posts from the last ${timeThreshold} hours`,
-      totalRecentPosts,
-      data: results,
-      performance: {
-        totalDuration: performance.total,
-        batchDetails: performance.batches,
-        averageAccountTime: performance.total / results.length,
-      },
-    });
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error in parallel Instagram scraper controller:", error);
     return res.status(500).json({

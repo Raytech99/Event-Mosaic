@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer");
-const { performance } = require("perf_hooks");
 const fs = require("fs");
 const path = require("path");
 
@@ -21,14 +20,6 @@ class InstagramScraper {
 
     this.credentials = credentials;
     this.cookiesPath = path.join(COOKIES_DIR, `${credentials.username}.json`);
-    this.metrics = {
-      total: { start: 0, end: 0, duration: 0 },
-      login: { start: 0, end: 0, duration: 0 },
-      navigation: { start: 0, end: 0, duration: 0 },
-      processing: { start: 0, end: 0, duration: 0 },
-      postDetails: [],
-      recentPostsCount: 0,
-    };
   }
 
   // Helper sleep function
@@ -90,8 +81,6 @@ class InstagramScraper {
 
   // Handle Instagram login
   async login(page) {
-    this.metrics.login.start = performance.now();
-
     try {
       await page.goto("https://www.instagram.com/accounts/login/", {
         waitUntil: "networkidle0",
@@ -126,10 +115,6 @@ class InstagramScraper {
       await this.saveCookies(page);
     } catch (error) {
       throw new Error(`Login process failed: ${error.message}`);
-    } finally {
-      this.metrics.login.end = performance.now();
-      this.metrics.login.duration =
-        this.metrics.login.end - this.metrics.login.start;
     }
   }
 
@@ -164,9 +149,6 @@ class InstagramScraper {
 
   // Get just post URLs from profile page
   async getProfilePostUrls(page, username, postLimit = 10) {
-    this.metrics.navigation.start = performance.now();
-    this.metrics.processing.start = performance.now();
-
     try {
       // Navigate to profile page
       await page.goto(`https://www.instagram.com/${username}/`, {
@@ -187,22 +169,12 @@ class InstagramScraper {
       throw new Error(
         `Failed to fetch post URLs from ${username}: ${error.message}`
       );
-    } finally {
-      this.metrics.navigation.end = performance.now();
-      this.metrics.navigation.duration =
-        this.metrics.navigation.end - this.metrics.navigation.start;
-
-      this.metrics.processing.end = performance.now();
-      this.metrics.processing.duration =
-        this.metrics.processing.end - this.metrics.processing.start;
     }
   }
 
   // Get detailed information about a specific post by visiting its page
   async getPostDetails(page, postUrl) {
     try {
-      console.log(`Processing post: ${postUrl}`);
-
       await page.goto(postUrl, {
         waitUntil: "domcontentloaded",
         timeout: 30000,
@@ -297,8 +269,6 @@ class InstagramScraper {
 
   // Scrape posts from an Instagram profile
   async scrapeProfile(username, options = {}) {
-    this.metrics.total.start = performance.now();
-
     const postLimit = options.postLimit || 4;
     const timeThreshold = options.timeThreshold || 24;
     const batchSize = options.batchSize || 3;
@@ -360,8 +330,6 @@ class InstagramScraper {
 
       // Process in batches
       for (let i = 0; i < postUrls.length; i += batchSize) {
-        this.metrics.processing.start = performance.now();
-
         // Get current batch
         const batchUrls = postUrls.slice(i, i + batchSize);
 
@@ -371,10 +339,6 @@ class InstagramScraper {
         );
 
         const batchResults = await Promise.all(batchPromises);
-
-        this.metrics.processing.end = performance.now();
-        this.metrics.processing.duration +=
-          this.metrics.processing.end - this.metrics.processing.start;
 
         // Add to processed posts
         processedPosts.push(...batchResults);
@@ -412,9 +376,6 @@ class InstagramScraper {
 
         // If we're past the pinned posts and found a non-recent post, terminate
         if (pinnedPostsProcessed && batchHasNonRecentPosts) {
-          console.log(
-            `\nTerminating early: Found a non-recent post after processing pinned content.`
-          );
           break;
         }
       }
@@ -427,49 +388,19 @@ class InstagramScraper {
       // Sort recent posts by date (newest first)
       recentPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      // Track post metrics
-      recentPosts.forEach((post) => {
-        this.metrics.postDetails.push({
-          url: post.url,
-          date: post.date,
-        });
-      });
-
-      this.metrics.recentPostsCount = recentPosts.length;
-
-      this.metrics.total.end = performance.now();
-      this.metrics.total.duration =
-        this.metrics.total.end - this.metrics.total.start;
-
       return {
         success: true,
         username,
         posts: recentPosts,
         recentPostsCount: recentPosts.length,
         message: "Successfully scraped recent Instagram posts",
-        metrics: {
-          total: this.metrics.total.duration,
-          login: this.metrics.login.duration,
-          navigation: this.metrics.navigation.duration,
-          processing: this.metrics.processing.duration,
-          postMetrics: this.metrics.postDetails,
-        },
       };
     } catch (error) {
-      this.metrics.total.end = performance.now();
-      this.metrics.total.duration =
-        this.metrics.total.end - this.metrics.total.start;
-
       return {
         success: false,
         username,
         error: error.message,
         message: "Failed to scrape recent Instagram posts",
-        metrics: {
-          total: this.metrics.total.duration,
-          login: this.metrics.login.duration,
-          postMetrics: this.metrics.postDetails,
-        },
       };
     } finally {
       if (browser) {

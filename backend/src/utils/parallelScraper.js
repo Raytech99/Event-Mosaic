@@ -1,5 +1,4 @@
 const { InstagramScraper } = require("./instagramScraper");
-const { performance } = require("perf_hooks");
 
 // Scrape multiple Instagram accounts in parallel
 async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
@@ -20,16 +19,6 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     throw new Error("Valid Instagram credentials are required");
   }
 
-  // Performance metrics
-  const metrics = {
-    total: {
-      start: performance.now(),
-      end: 0,
-      duration: 0,
-    },
-    batches: [],
-  };
-  
   console.log(
     `Starting parallel scraping for ${usernames.length} accounts with concurrency limit of ${concurrencyLimit}`
   );
@@ -42,16 +31,6 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     const batchNumber = Math.floor(i / concurrencyLimit) + 1;
     const totalBatches = Math.ceil(usernames.length / concurrencyLimit);
 
-    // Start batch metrics
-    const batchMetric = {
-      number: batchNumber,
-      accounts: batch,
-      start: performance.now(),
-      end: 0,
-      duration: 0,
-      results: [],
-    };
-
     console.log(
       `Processing batch ${batchNumber}/${totalBatches}: ${batch.join(", ")}`
     );
@@ -60,38 +39,14 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     const batchPromises = batch.map((username) => {
       // Create individual timeout for each scraper
       const scrapePromise = async () => {
-        const accountMetric = {
-          username,
-          start: performance.now(),
-          end: 0,
-          duration: 0,
-        };
-
         try {
           const scraper = new InstagramScraper(credentials);
           const result = await scraper.scrapeProfile(username, {
             postLimit,
-            timeThreshold
+            timeThreshold,
           });
-
-          accountMetric.end = performance.now();
-          accountMetric.duration = accountMetric.end - accountMetric.start;
-          accountMetric.success = result.success;
-          accountMetric.recentPostsCount = result.recentPostsCount || 0;
-
-          // Add detailed metrics to batch results
-          batchMetric.results.push(accountMetric);
-
           return result;
         } catch (error) {
-          accountMetric.end = performance.now();
-          accountMetric.duration = accountMetric.end - accountMetric.start;
-          accountMetric.success = false;
-          accountMetric.error = error.message;
-
-          // Add error metrics to batch results
-          batchMetric.results.push(accountMetric);
-
           return {
             username,
             success: false,
@@ -113,18 +68,6 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
           }, timeout);
         }),
       ]).catch((error) => {
-        const accountMetric = {
-          username,
-          start: performance.now() - timeout, 
-          end: performance.now(),
-          duration: timeout,
-          success: false,
-          error: error.message,
-        };
-
-        // Add timeout metrics to batch results
-        batchMetric.results.push(accountMetric);
-
         return {
           username,
           success: false,
@@ -138,26 +81,8 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     const batchResults = await Promise.all(batchPromises);
     results.push(...batchResults);
 
-    // Complete batch metrics
-    batchMetric.end = performance.now();
-    batchMetric.duration = batchMetric.end - batchMetric.start;
-    metrics.batches.push(batchMetric);
-
-    console.log(
-      `Completed batch ${batchNumber}/${totalBatches} in ${batchMetric.duration.toFixed(
-        0
-      )}ms`
-    );
-
-    // Optional: Add delay between batches to reduce rate limiting
-    // if (i + concurrencyLimit < usernames.length) {
-    //   await new Promise((resolve) => setTimeout(resolve, 2000));
-    // }
+    console.log(`Completed batch ${batchNumber}/${totalBatches}`);
   }
-
-  // Calculate and log total execution time
-  metrics.total.end = performance.now();
-  metrics.total.duration = metrics.total.end - metrics.total.start;
 
   // Count posts within timeframe
   const totalRecentPosts = results.reduce(
@@ -166,11 +91,6 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
   );
 
   console.log(
-    `Completed scraping ${
-      usernames.length
-    } accounts in ${metrics.total.duration.toFixed(0)}ms`
-  );
-  console.log(
     `Found ${totalRecentPosts} posts within the last ${timeThreshold} hours`
   );
 
@@ -178,45 +98,18 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
   const successCount = results.filter((r) => r.success).length;
   console.log(`Success: ${successCount}/${usernames.length} accounts`);
 
-  // Batch performance breakdown
-  console.log("Batch performance:");
-  metrics.batches.forEach((batch) => {
-    console.log(
-      `- Batch ${batch.number}: ${batch.duration.toFixed(0)}ms for ${
-        batch.accounts.length
-      } accounts`
-    );
-    batch.results.forEach((account) => {
-      console.log(
-        `  - ${account.username}: ${
-          account.success ? "Success" : "Failed"
-        } in ${account.duration.toFixed(0)}ms, Recent posts: ${
-          account.recentPostsCount || 0
-        }`
-      );
-    });
-  });
-
-  return {
-    results,
-    totalRecentPosts,
+  // Format response
+  const response = {
+    success: successCount > 0,
+    total: usernames.length,
+    successCount,
     timeThreshold,
-    performance: {
-      total: metrics.total.duration,
-      batches: metrics.batches.map((batch) => ({
-        number: batch.number,
-        accounts: batch.accounts,
-        duration: batch.duration,
-        accountMetrics: batch.results.map((account) => ({
-          username: account.username,
-          success: account.success,
-          duration: account.duration,
-          recentPostsCount: account.recentPostsCount || 0,
-          error: account.error,
-        })),
-      })),
-    },
+    timeframe: `Posts from the last ${timeThreshold} hours`,
+    totalRecentPosts,
+    data: results,
   };
+
+  return response;
 }
 
 module.exports = { scrapeMultipleAccounts };
