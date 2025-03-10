@@ -71,7 +71,7 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
           const scraper = new InstagramScraper(credentials);
           const result = await scraper.scrapeProfile(username, {
             postLimit,
-            timeThreshold,
+            timeThreshold
           });
 
           accountMetric.end = performance.now();
