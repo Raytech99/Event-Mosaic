@@ -4,6 +4,8 @@ const path = require("path");
 
 // Config paths
 const COOKIES_DIR = path.join(__dirname, "cookies");
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36";
 
 // Ensure cookies directory exists
 if (!fs.existsSync(COOKIES_DIR)) {
@@ -35,9 +37,7 @@ class InstagramScraper {
     });
 
     const page = await browser.newPage();
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-    );
+    await page.setUserAgent(USER_AGENT);
 
     return { browser, page };
   }
@@ -147,24 +147,80 @@ class InstagramScraper {
     }
   }
 
+  // Check account status (private, not found, no posts)
+  async checkAccountStatus(page, username) {
+    try {
+      const status = await page.evaluate(() => {
+        // Check for private account
+        const allHeadings = Array.from(document.querySelectorAll("h2"));
+        const privateHeading = allHeadings.find(
+          (h) =>
+            h.textContent && h.textContent.includes("This Account is Private")
+        );
+        if (privateHeading) return "private";
+
+        // Check for "Sorry, this page isn't available" message (account doesn't exist)
+        const notFoundHeading = allHeadings.find(
+          (h) => h.textContent && h.textContent.includes("Sorry, this page")
+        );
+        if (notFoundHeading) return "not_found";
+
+        // Check for no posts
+        const allSpans = Array.from(document.querySelectorAll("span"));
+        const emptyFeedSpan = allSpans.find(
+          (span) =>
+            span.textContent && span.textContent.includes("No Posts Yet")
+        );
+        if (emptyFeedSpan) return "no_posts";
+
+        return "accessible";
+      });
+
+      return status;
+    } catch (error) {
+      console.error(`Error checking account status: ${error.message}`);
+      return "unknown";
+    }
+  }
+
   // Get just post URLs from profile page
   async getProfilePostUrls(page, username, postLimit = 10) {
     try {
-      // Navigate to profile page
       await page.goto(`https://www.instagram.com/${username}/`, {
         waitUntil: "networkidle2",
-        timeout: 60000,
+        timeout: 45000,
       });
 
-      await page.waitForSelector('a[href*="/p/"]', { timeout: 60000 });
+      await this.sleep(1500);
 
-      // Extract just the post URLs to process in parallel later
-      const postUrls = await page.evaluate((limit) => {
-        const links = Array.from(document.querySelectorAll('a[href*="/p/"]'));
+      // Check account status
+      const accountStatus = await this.checkAccountStatus(page, username);
+
+      // Handle different account statuses
+      switch (accountStatus) {
+        case "private":
+          throw new Error(`Account ${username} is private`);
+        case "not_found":
+          throw new Error(`Account ${username} was not found`);
+        case "no_posts":
+          return []; // Return empty array for no posts
+        case "unknown":
+          throw new Error(`Unable to determine status of account ${username}`);
+      }
+
+      // Try to find post URLs with a more flexible approach
+      return await page.evaluate((limit) => {
+        let links = Array.from(document.querySelectorAll('a[href*="/p/"]'));
+
+        if (links.length === 0) {
+          links = Array.from(document.querySelectorAll("a")).filter((link) => {
+            const href = link.getAttribute("href");
+            return href && (href.includes("/p/") || href.includes("/reel/"));
+          });
+        }
+
         return links.slice(0, limit).map((link) => link.href);
       }, postLimit);
-
-      return postUrls;
     } catch (error) {
       throw new Error(
         `Failed to fetch post URLs from ${username}: ${error.message}`
@@ -180,9 +236,8 @@ class InstagramScraper {
         timeout: 30000,
       });
 
-      await this.sleep(2000);
+      await this.sleep(1000);
 
-      // Ensure the page has fully rendered by scrolling a bit
       await page.evaluate(() => {
         window.scrollBy(0, 300);
       });
@@ -226,6 +281,7 @@ class InstagramScraper {
         }
 
         if (!imageUrl) {
+          // Fallback to image in post content
           const imgElements = document.querySelectorAll("article img");
           if (imgElements.length > 0) {
             const filteredImgs = Array.from(imgElements).filter((img) => {
@@ -267,6 +323,82 @@ class InstagramScraper {
     }
   }
 
+  // Create multiple browser pages for parallel processing
+  async createParallelPages(browser, count) {
+    return Promise.all(
+      Array(count)
+        .fill()
+        .map(async () => {
+          const newPage = await browser.newPage();
+          await newPage.setUserAgent(USER_AGENT);
+          return newPage;
+        })
+    );
+  }
+
+  // Process posts and filter by time threshold
+  async processPostBatches(pages, postUrls, timeThreshold, batchSize) {
+    const processedPosts = [];
+    const recentPosts = [];
+
+    // Calculate time threshold date
+    const thresholdDate = new Date();
+    thresholdDate.setHours(thresholdDate.getHours() - timeThreshold);
+    const thresholdISOString = thresholdDate.toISOString();
+
+    let pinnedPostsProcessed = false;
+    const pinnedPostCount = 3; // Assuming the first 3 posts could be pinned
+
+    // Process in batches
+    for (let i = 0; i < postUrls.length; i += batchSize) {
+      // Get current batch
+      const batchUrls = postUrls.slice(i, i + batchSize);
+
+      // Process batch in parallel
+      const batchPromises = batchUrls.map((url, index) =>
+        this.getPostDetails(pages[index % pages.length], url)
+      );
+
+      // Wait for all promises to resolve, then process
+      const batchResults = await Promise.all(batchPromises);
+      processedPosts.push(...batchResults);
+
+      let batchHasNonRecentPosts = false;
+      const newRecentPosts = [];
+
+      // Process all posts in batch
+      for (const post of batchResults) {
+        try {
+          const isRecent = post.date >= thresholdISOString;
+          if (isRecent) {
+            newRecentPosts.push(post);
+          } else {
+            batchHasNonRecentPosts = true;
+          }
+        } catch (e) {
+          console.error(`Error processing date: ${e.message}`);
+        }
+      }
+
+      // Add to recent posts
+      recentPosts.push(...newRecentPosts);
+
+      // Check if we've processed the potentially pinned posts
+      const totalProcessedPosts = processedPosts.length;
+      if (!pinnedPostsProcessed && totalProcessedPosts >= pinnedPostCount) {
+        pinnedPostsProcessed = true;
+      }
+
+      // If we're past the pinned posts and found a non-recent post, terminate
+      if (pinnedPostsProcessed && batchHasNonRecentPosts) {
+        break;
+      }
+    }
+
+    // Sort recent posts by date (newest first)
+    return recentPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
   // Scrape posts from an Instagram profile
   async scrapeProfile(username, options = {}) {
     const postLimit = options.postLimit || 4;
@@ -299,94 +431,33 @@ class InstagramScraper {
       // Step 1: Get post URLs quickly from the profile page
       const postUrls = await this.getProfilePostUrls(page, username, maxPosts);
 
+      // Handle case with no posts
       if (postUrls.length === 0) {
-        throw new Error(`No posts found for ${username}`);
+        return {
+          success: true,
+          username,
+          posts: [],
+          recentPostsCount: 0,
+          message: `No posts found for ${username} within the time threshold`,
+        };
       }
 
-      // Step 2: Process post URLs in batches
-      const processedPosts = [];
-      const recentPosts = [];
-
-      const thresholdDate = new Date();
-      thresholdDate.setHours(thresholdDate.getHours() - timeThreshold);
-      const thresholdISOString = thresholdDate.toISOString();
-
-      // Create multiple pages for parallel processing
+      // Step 2: Create multiple pages for parallel processing
       const numPages = Math.min(batchSize, postUrls.length);
-      const pages = await Promise.all(
-        Array(numPages)
-          .fill()
-          .map(async () => {
-            const newPage = await browser.newPage();
-            await newPage.setUserAgent(
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-            );
-            return newPage;
-          })
+      const pages = await this.createParallelPages(browser, numPages);
+
+      // Step 3: Process post URLs in batches and get recent posts
+      const recentPosts = await this.processPostBatches(
+        pages,
+        postUrls,
+        timeThreshold,
+        batchSize
       );
-
-      let pinnedPostsProcessed = false;
-      const pinnedPostCount = 3; // Assuming the first 3 posts could be pinned
-
-      // Process in batches
-      for (let i = 0; i < postUrls.length; i += batchSize) {
-        // Get current batch
-        const batchUrls = postUrls.slice(i, i + batchSize);
-
-        // Process batch in parallel
-        const batchPromises = batchUrls.map((url, index) =>
-          this.getPostDetails(pages[index % pages.length], url)
-        );
-
-        const batchResults = await Promise.all(batchPromises);
-
-        // Add to processed posts
-        processedPosts.push(...batchResults);
-
-        let batchHasRecentPosts = false;
-        let batchHasNonRecentPosts = false;
-        const newRecentPosts = [];
-
-        // Process all posts in batch
-        for (let j = 0; j < batchResults.length; j++) {
-          const post = batchResults[j];
-          try {
-            // Direct string comparison when possible
-            const isRecent = post.date >= thresholdISOString;
-
-            if (isRecent) {
-              newRecentPosts.push(post);
-              batchHasRecentPosts = true;
-            } else {
-              batchHasNonRecentPosts = true;
-            }
-          } catch (e) {
-            console.error(`Error processing date: ${e.message}`);
-          }
-        }
-
-        // Add to recent posts
-        recentPosts.push(...newRecentPosts);
-
-        // Check if we've processed the potentially pinned posts
-        const totalProcessedPosts = processedPosts.length;
-        if (!pinnedPostsProcessed && totalProcessedPosts >= pinnedPostCount) {
-          pinnedPostsProcessed = true;
-        }
-
-        // If we're past the pinned posts and found a non-recent post, terminate
-        if (pinnedPostsProcessed && batchHasNonRecentPosts) {
-          break;
-        }
-      }
 
       // Close additional pages
       for (const p of pages) {
         await p.close();
       }
-
-      // Sort recent posts by date (newest first)
-      recentPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       return {
         success: true,
@@ -396,10 +467,22 @@ class InstagramScraper {
         message: "Successfully scraped recent Instagram posts",
       };
     } catch (error) {
+      let errorMessage = error.message;
+
+      if (error.message.includes("private")) {
+        errorMessage = `Account '${username}' is private and cannot be accessed`;
+      } else if (error.message.includes("not found")) {
+        errorMessage = `Account '${username}' does not exist or has changed its username`;
+      } else if (error.message.includes("no posts")) {
+        errorMessage = `Account '${username}' does not have any posts`;
+      } else if (error.message.includes("timeout")) {
+        errorMessage = `Timed out while accessing '${username}' - Instagram may be rate limiting requests`;
+      }
+
       return {
         success: false,
         username,
-        error: error.message,
+        error: errorMessage,
         message: "Failed to scrape recent Instagram posts",
       };
     } finally {
