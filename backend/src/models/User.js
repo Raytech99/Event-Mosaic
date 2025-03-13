@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    followedAccounts: [{ type: mongoose.Schema.Types.ObjectId, ref: "instAccounts" }], 
+    followedAccounts: [{ type: mongoose.Schema.Types.ObjectId, ref: "instaAccounts" }], 
     createdAt: { type: Date, default: Date.now },
 });
 

@@ -7,7 +7,7 @@ const User = require("../models/User");
 const router = express.Router();
 
 // Register Route
-const instaAccount = require("../models/instaAccounts"); // Import the model
+const instaAccounts = require("../models/instaAccounts"); // Import the model
 
 router.post(
     "/register",
