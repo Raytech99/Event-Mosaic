@@ -25,21 +25,23 @@ router.post(
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const followedHandles = req.body.followedAccounts || []; // Get handles from request
-        const followedAccounts = [];
+        const { firstName, lastName, username, email, password, followedAccounts } = req.body;
+
+        const followedHandles = followedAccounts || [];
+        const followedAccountIds = [];
 
         for (const handle of followedHandles) {
+            console.log("🔍 Searching for handle:", handle);
 
-            console.log("Searching for handle:", handle);
-
-            const account = await instaAccounts.findOne({ handle }); // Find the account by handle
+            const account = await instaAccounts.findOne({ handle });
             if (account) {
-                followedAccounts.push(account._id); // Store the ObjectId
+                console.log("Account found:", account._id);
+                followedAccountIds.push(account._id);
             } else {
+                console.log("Account not found:", handle);
                 return res.status(400).json({ msg: `Account ${handle} not found` });
             }
         }
-
 
         try {
             let existingUser = await User.findOne({ email });
@@ -49,9 +51,9 @@ router.post(
             if (existingUsername) return res.status(400).json({ msg: "Username already taken" });
 
             // Validate followedAccounts
-            const validAccounts = await instaAccounts.find({ _id: { $in: followedAccounts } });
+            const validAccounts = await instaAccounts.find({ _id: { $in: followedAccountIds } });
 
-            if (validAccounts.length !== followedAccounts.length) {
+            if (validAccounts.length !== followedAccountIds.length) {
                 return res.status(400).json({ msg: "Some followed accounts are invalid" });
             }
 
@@ -60,9 +62,9 @@ router.post(
                 firstName,
                 lastName,
                 username,
-                email,
+                email, 
                 password, // Password hashing is handled in the User model
-                followedAccounts, // Store valid accounts
+                followedAccounts: followedAccountIds, // Store valid accounts
             });
 
             await user.save();
@@ -74,6 +76,7 @@ router.post(
         }
     }
 );
+
 
 
 
