@@ -32,7 +32,7 @@ router.post(
 
             console.log("Searching for handle:", handle);
 
-            const account = await instaAccount.findOne({ handle }); // Find the account by handle
+            const account = await instaAccounts.findOne({ handle }); // Find the account by handle
             if (account) {
                 followedAccounts.push(account._id); // Store the ObjectId
             } else {
@@ -49,7 +49,7 @@ router.post(
             if (existingUsername) return res.status(400).json({ msg: "Username already taken" });
 
             // Validate followedAccounts
-            const validAccounts = await instaAccount.find({ _id: { $in: followedAccounts } });
+            const validAccounts = await instaAccounts.find({ _id: { $in: followedAccounts } });
 
             if (validAccounts.length !== followedAccounts.length) {
                 return res.status(400).json({ msg: "Some followed accounts are invalid" });
