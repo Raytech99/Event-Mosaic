@@ -29,7 +29,10 @@ router.post(
         const followedAccounts = [];
 
         for (const handle of followedHandles) {
-            const account = await instAccount.findOne({ handle }); // Find the account by handle
+
+            console.log("Searching for handle:", handle);
+
+            const account = await instaAccount.findOne({ handle }); // Find the account by handle
             if (account) {
                 followedAccounts.push(account._id); // Store the ObjectId
             } else {
