@@ -55,13 +55,14 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ msg: "Invalid credentials" });
         }
 
-        console.log("🔍 Stored Hashed Password in MongoDB:", user.password);
-        console.log("🔍 Input Password Before Hashing:", password);
+        //debugging comments 
+        //console.log("Stored Hashed Password in MongoDB:", user.password);
+        //console.log("Input Password Before Hashing:", password);
 
         // Compare input password with stored hash
         const isMatch = await bcrypt.compare(password, user.password);
 
-        console.log("🔍 Password Match Result:", isMatch);
+        console.log("Password Match Result:", isMatch);
 
         if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
