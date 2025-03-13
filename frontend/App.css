@@ -1,0 +1,92 @@
+/* src/App.css */
+
+/* background style */
+body {
+  background-color: #F5F4F0; /* Background color */
+  background-image: url('/images/loginsu.png'); /* Background image */
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover; /* Ensures the image covers the entire screen */
+  margin: 0;
+  overflow: hidden; /* Hides any overflow */
+  font-family: Arial, sans-serif; /* Default font */
+}
+
+/* Navigation bar styling */
+nav {
+  background-color: #8c2915; /* Dark red background for the navbar */
+  border-top: 5px solid #8c2915; /* Top border */
+  padding: 10px 0;
+  position: relative;
+}
+
+nav ul {
+  list-style: none; /* Removes default list styling */
+  margin: 0; /* Removes default margin */
+  padding: 0; /* Removes default padding */
+  display: flex; /* Makes the nav items line up horizontally */
+  justify-content: right; /* Aligns items to the right */
+}
+
+nav ul li {
+  margin: 0 15px; /* Space between each list item */
+}
+
+nav ul li a {
+  color: white; /* White text for the navigation links */
+  text-decoration: none; /* No underlines on the links */
+  font-size: 18px; /* Font size for the links */
+  padding: 5px 10px; /* Adds space around the link text */
+  display: block; /* Ensures the links fill the block (good for padding) */
+  text-align: center; /* Centers the text inside the links */
+}
+
+nav ul li a:hover {
+  color: #f8d7d5; /* Lighter color when hovering over the link */
+  background-color: #5c1a12; /* Darker background color on hover */
+  border-radius: 5px; /* Rounded corners on hover */
+}
+
+nav ul li.logo {
+  margin: 0 15px; /* Space around the logo */
+}
+
+nav ul li.logo a img {
+  height: 50px; /* Height of the logo */
+  width: auto; /* Maintains aspect ratio */
+  display: block; /* Ensures no extra space around the logo */
+}
+
+/* Styling for the PageTitle component */
+#title {
+  text-align: center; /* Centers the title */
+  font-size: 24px; /* Font size for the title */
+  margin-bottom: 20px; /* Adds space below the title */
+}
+
+/* Styling for the Login form */
+#loginDiv {
+  text-align: center;
+  margin-top: 20px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+#loginButton {
+  background-color: #4CAF50; /* Green background for the login button */
+  color: white; /* White text */
+  cursor: pointer; /* Indicates the button is clickable */
+}
+
+#loginButton:hover {
+  background-color: #45a049; /* Slightly darker green on hover */
+}
