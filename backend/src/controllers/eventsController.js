@@ -161,7 +161,7 @@ exports.getInstagramPosts = async (req, res) => {
 
 // MAYA API BELOW -------------------------------------------------------
 
-const Event = require("../models/Event");
+const Event = require("../models/Events");
 
 // Create Event
 exports.createEvent = async (req, res) => {
