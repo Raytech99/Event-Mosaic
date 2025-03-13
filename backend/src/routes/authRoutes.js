@@ -7,7 +7,7 @@ const User = require("../models/User");
 const router = express.Router();
 
 // Register Route
-const instAccount = require("../models/instaAccounts"); // Import the model
+const instaAccount = require("../models/instaAccounts"); // Import the model
 
 router.post(
     "/register",
@@ -49,7 +49,7 @@ router.post(
             if (existingUsername) return res.status(400).json({ msg: "Username already taken" });
 
             // Validate followedAccounts
-            const validAccounts = await instAccount.find({ _id: { $in: followedAccounts } });
+            const validAccounts = await instaAccount.find({ _id: { $in: followedAccounts } });
 
             if (validAccounts.length !== followedAccounts.length) {
                 return res.status(400).json({ msg: "Some followed accounts are invalid" });
