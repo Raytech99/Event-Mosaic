@@ -5,5 +5,7 @@ const InstaAccountSchema = new mongoose.Schema({
     events: { type: Array, default: [] }
 });
 
-module.exports = mongoose.model("instaAccounts", InstaAccountSchema);
+module.exports = mongoose.model("InstaAccount", InstaAccountSchema, "instaAccounts");
+
+
 
