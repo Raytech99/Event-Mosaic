@@ -1,5 +1,6 @@
 const express = require("express");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
@@ -8,6 +9,15 @@ router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not defined in environment variables");
+      return res.status(500).json({
+        success: false,
+        msg: "Server configuration error",
+        details: "JWT_SECRET missing",
+      });
+    }
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: "User already exists" });
 
@@ -19,7 +29,10 @@ router.post("/register", async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.status(201).json({ msg: "User registered successfully" }, token);
+    res.status(201).json({
+      msg: "User registered successfully",
+      token,
+    });
   } catch (err) {
     res.status(500).json({ msg: "Server error", error: err });
   }
@@ -30,6 +43,15 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not defined in environment variables");
+      return res.status(500).json({
+        success: false,
+        msg: "Server configuration error",
+        details: "JWT_SECRET missing",
+      });
+    }
+
     let user = await User.findOne({ email });
     if (!user || user.password !== password)
       return res.status(400).json({ msg: "Invalid credentials" });

@@ -1,12 +1,10 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-// Auth middleware, checks if token is valid
+// Auth middleware, checks if token is valid, if it is, adds user ID to request object
 module.exports = function (req, res, next) {
-  // Get token from header
   const token = req.header("x-auth-token");
 
-  // Check if no token
   if (!token) {
     return res
       .status(401)
@@ -14,10 +12,8 @@ module.exports = function (req, res, next) {
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Add user ID to request object
     req.user = { id: decoded.userId };
 
     next();
