@@ -7,12 +7,17 @@ const User = require("../models/User");
 const router = express.Router();
 
 // Register Route
+const InstAccount = require("../models/InstAccount"); // Import the model
+
 router.post(
     "/register",
     [
-        body("name").not().isEmpty().withMessage("Name is required"),
+        body("firstName").not().isEmpty().withMessage("First name is required"),
+        body("lastName").not().isEmpty().withMessage("Last name is required"),
+        body("username").not().isEmpty().withMessage("Username is required"),
         body("email").isEmail().withMessage("Invalid email format"),
         body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+        body("followedAccounts").isArray().withMessage("Followed accounts must be an array"),
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -20,20 +25,33 @@ router.post(
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { name, email, password } = req.body;
+        const { firstName, lastName, username, email, password, followedAccounts } = req.body;
 
         try {
-            let user = await User.findOne({ email });
-            if (user) return res.status(400).json({ msg: "User already exists" });
+            let existingUser = await User.findOne({ email });
+            let existingUsername = await User.findOne({ username });
 
-            console.log("Received Plaintext Password:", password);
+            if (existingUser) return res.status(400).json({ msg: "Email already in use" });
+            if (existingUsername) return res.status(400).json({ msg: "Username already taken" });
 
-            // Password will be hashed inside of User.js
-            user = new User({ name, email, password });
+            // Validate followedAccounts
+            const validAccounts = await InstAccount.find({ _id: { $in: followedAccounts } });
 
-            await user.save(); // going to User.js for password hashing
+            if (validAccounts.length !== followedAccounts.length) {
+                return res.status(400).json({ msg: "Some followed accounts are invalid" });
+            }
 
-            console.log("User saved successfully!");
+            // Create new user
+            const user = new User({
+                firstName,
+                lastName,
+                username,
+                email,
+                password, // Password hashing is handled in the User model
+                followedAccounts, // Store valid accounts
+            });
+
+            await user.save();
 
             res.status(201).json({ msg: "User registered successfully" });
         } catch (err) {
@@ -43,30 +61,29 @@ router.post(
     }
 );
 
+
+
 // Login Route
 router.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+    const { emailOrUsername, password } = req.body;
 
     try {
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ 
+            $or: [{ email: emailOrUsername }, { username: emailOrUsername }]
+        });
 
         if (!user) {
-            console.log("User not found:", email);
             return res.status(400).json({ msg: "Invalid credentials" });
         }
-
+        
         //debugging comments 
         //console.log("Stored Hashed Password in MongoDB:", user.password);
         //console.log("Input Password Before Hashing:", password);
 
-        // Compare input password with stored hash
         const isMatch = await bcrypt.compare(password, user.password);
-
-        console.log("Password Match Result:", isMatch);
 
         if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-        // Generate JWT token
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         res.json({ token });
@@ -76,8 +93,8 @@ router.post("/login", async (req, res) => {
     }
 });
 
-module.exports = router;
 
+module.exports = router;
 
 
 
