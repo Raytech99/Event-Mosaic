@@ -47,18 +47,24 @@ router.post(
             let user = await User.findOne({ email });
             if (user) return res.status(400).json({ msg: "User already exists" });
 
-            // Hash the password before storing it
+            console.log("Plaintext Password Before Hashing:", password);
+
+            // Ensure password is hashed correctly
             const hashedPassword = await bcrypt.hash(password, 10);
+
+            console.log("Hashed Password Before Saving:", hashedPassword);
 
             user = new User({ name, email, password: hashedPassword });
             await user.save();
 
             res.status(201).json({ msg: "User registered successfully" });
         } catch (err) {
+            console.error("Registration Error:", err);
             res.status(500).json({ msg: "Server error", error: err.message });
         }
     }
 );
+
 
 module.exports = router;
 
