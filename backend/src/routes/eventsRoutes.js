@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const {
-  getInstagramPosts,
   getMultipleInstagramPosts,
 } = require("../controllers/eventsController");
+const auth = require("../middleware/auth");
 
-// Route to get Instagram posts
-router.get("/instagram/:username", getInstagramPosts);
+// Protect all routes with authentication
+router.use(auth);
 
 // Route to get Instagram posts for multiple accounts in parallel
 router.get("/instagram-multiple", getMultipleInstagramPosts);
