@@ -1,24 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const eventsRoutes = require("./routes/eventsRoutes");
-const authRoutes = require("./routes/authRoutes"); // Import authentication routes
+const authRoutes = require("./routes/authRoutes");
+const accountRoutes = require("./routes/accountRoutes");
+const { initScheduler } = require("./utils/scheduler");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Root endpoint
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to Instagram Scraper API" });
-});
+// Initialize scheduler
+initScheduler();
 
-// Ensure correct route registration
+// Routes
 app.use("/api/events", eventsRoutes);
-app.use("/api/auth", authRoutes); 
+app.use("/api/auth", authRoutes);
+app.use("/api/account", accountRoutes);
 
 module.exports = app;
-
-
-
-

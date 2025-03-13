@@ -20,6 +20,7 @@
     "instatouch": "^2.3.22",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.12.0",
+    "node-cron": "^3.0.3",
     "nodemon": "^3.1.9",
     "puppeteer": "^24.3.0"
   }
