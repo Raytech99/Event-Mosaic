@@ -1,17 +1,25 @@
-require("dotenv").config(); // Load environment variables
+require("dotenv").config({ path: "../.env" }); // Adjust the path if needed
 const mongoose = require("mongoose");
-const instaAccounts = require("./models/instaAccounts"); // Adjust path if needed
-const connectDB = require("./db"); // Ensure database connection
+const instaAccounts = require("./models/instaAccounts"); // Adjust if needed
+const connectDB = require("./db");
 
 async function checkHandle() {
     await connectDB(); // Ensure DB connection
-    
+
     const handle = "@psa_ucf";
+    console.log(`🔍 Searching for handle: "${handle}"`);
+
     const account = await instaAccounts.findOne({ handle });
 
-    console.log("Query result:", account);
+    if (account) {
+        console.log("✅ Account found:", account);
+    } else {
+        console.log("❌ Account not found!");
+    }
 
     mongoose.connection.close(); // Close connection after query
 }
 
 checkHandle();
+
+
