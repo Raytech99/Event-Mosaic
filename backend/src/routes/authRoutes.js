@@ -27,9 +27,9 @@ router.post(
 
         const followedHandles = req.body.followedAccounts || []; // Get handles from request
         const followedAccounts = [];
-            
+
         for (const handle of followedHandles) {
-            const account = await InstAccount.findOne({ handle }); // Find the account by handle
+            const account = await instAccount.findOne({ handle }); // Find the account by handle
             if (account) {
                 followedAccounts.push(account._id); // Store the ObjectId
             } else {
