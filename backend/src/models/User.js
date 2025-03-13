@@ -7,16 +7,17 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
 });
 
-// Ensure password is only hashed once
+// Hash password before saving, but only if it's not already hashed
 UserSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password")) return next(); // Prevent double hashing
 
-    console.log("Hashing password inside User model");
-    
+    console.log("🔍 Hashing password inside User model before saving...");
+
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
 
 module.exports = mongoose.model("User", UserSchema);
+
 
 
