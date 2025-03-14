@@ -172,15 +172,29 @@ async function extractEventDetails(text) {
 // Create Event from NLP
 exports.createEventFromNLP = async (req, res) => {
     try {
-        const { text } = req.body;
-        const eventDetails = await extractEventDetails(text);
+        const { rawEventId } = req.params;
 
-        if (!eventDetails) {
-            return res.status(400).json({ error: "No valid future event found in text." });
+        // Fetch raw event data
+        const rawEvent = await RawEvent.findById(rawEventId);
+        if (!rawEvent) {
+            return res.status(404).json({ error: "Raw event not found" });
         }
 
-        // Create the event
-        const newEvent = new Event(eventDetails);
+        // Extract event details using NLP
+        const eventDetails = extractEventDetails(rawEvent.caption);
+        if (!eventDetails) {
+            return res.status(400).json({ error: "Failed to extract event details" });
+        }
+
+        // Create the new structured event
+        const newEvent = new Event({
+            name: eventDetails.name || "Untitled Event", // Ensures if there's no event name it still sets one
+            date: eventDetails.date,
+            time: eventDetails.time,
+            location: eventDetails.location,
+            caption: rawEvent.caption,
+        });
+
         await newEvent.save();
 
         res.status(201).json({ message: "Event created successfully", event: newEvent });
