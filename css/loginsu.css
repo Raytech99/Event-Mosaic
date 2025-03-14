@@ -1,0 +1,57 @@
+/* background style */
+body {
+    background-color: #F5F4F0;
+    background-image: url('../images/loginsu.png');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    margin: 0;
+    overflow: hidden;
+	font-family: Arial, sans-serif;  /* Default font */
+}
+
+/* navigation style */
+nav {
+    background-color: #8c2915; /* Background color for the navigation bar */
+    border-top: 5px solid #8c2915; /* Top border with color */
+	padding: 10px 0; 
+	position: relative;
+}
+
+nav ul {
+    list-style: none; /* Remove the default list styling */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+    display: flex; /* Arrange the items in a row */
+    justify-content: right; /* Center the items horizontally */
+}
+
+nav ul li {
+    margin: 0 15px; /* Space between navigation items */
+}
+
+nav ul li a {
+    color: white; /* White text for the links */
+    text-decoration: none; /* Remove underline from links */
+    font-size: 18px; /* Adjust font size */
+    padding: 5px 10px; /* Space around the text */
+    display: block; /* Make the link a block-level element for padding */
+    text-align: center; /* Center the text inside the link */
+}
+
+nav ul li a:hover {
+    color: #f8d7d5; /* Lighter color on hover */
+    background-color: #5c1a12; /* Darker background on hover */
+    border-radius: 5px; /* Rounded corners on hover */
+}
+
+nav ul li.logo {
+    margin: 0 15px; /* Push the logo to the left */
+}
+
+nav ul li.logo a img {
+    height: 50px; /* Set the height of the logo image */
+    width: auto; /* Adjust the width proportionally */
+    display: block; /* Remove any unwanted space around the logo */
+}
