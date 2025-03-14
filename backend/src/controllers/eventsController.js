@@ -162,18 +162,38 @@ exports.getInstagramPosts = async (req, res) => {
 // MAYA API BELOW -------------------------------------------------------
 
 const Event = require("../models/Events");
+const User = require("../models/User");  // Import User model
 
 // Create Event
 exports.createEvent = async (req, res) => {
-    try {
-        const { name, date, time, location, caption, postedBy } = req.body;
-        const newEvent = new Event({ name, date, time, location, caption, postedBy });
-        await newEvent.save();
-        res.status(201).json({ message: "Event created successfully", event: newEvent });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+      const { name, date, time, location, caption, postedBy } = req.body;
+      let user = null;
+
+      // Check if postedBy is provided and valid
+      if (postedBy) {
+          user = await User.findById(postedBy);
+          if (!user) {
+              return res.status(400).json({ error: "Invalid User ID" });
+          }
+      }
+
+      const newEvent = new Event({
+          name,
+          date,
+          time,
+          location,
+          caption,
+          postedBy: user ? user._id : null  // Store User ID if exists, otherwise null
+      });
+
+      await newEvent.save();
+      res.status(201).json({ message: "Event created successfully", event: newEvent });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
 };
+
 
 // Get All Events
 exports.getAllEvents = async (req, res) => {
