@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     followedAccounts: [{ type: mongoose.Schema.Types.ObjectId, ref: "instaAccounts" }], 
-    userEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],  // ✅ Store events created by user
+    userEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],  // Store events created by user
     createdAt: { type: Date, default: Date.now }
 });
 
