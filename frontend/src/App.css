@@ -18,7 +18,10 @@ nav {
   background-color: #8c2915; /* Dark red background for the navbar */
   border-top: 5px solid #8c2915; /* Top border */
   padding: 10px 0;
-  position: relative;
+  position: absolute; /* Make sure it's positioned at the top */
+  top: 0;  /* Align it to the top of the page */
+  width: 100%; /* Ensure the nav bar takes up the full width of the screen */
+  z-index: 10; /* Keep it above other content */
 }
 
 nav ul {
@@ -48,14 +51,17 @@ nav ul li a:hover {
   border-radius: 5px; /* Rounded corners on hover */
 }
 
-nav ul li.logo {
-  margin: 0 15px; /* Space around the logo */
+/* Logo container */
+.logo-container {
+  text-align: center; /* Center the logo under the navbar */
+  margin-top: 20px; /* Space between navbar and logo */
 }
 
-nav ul li.logo a img {
-  height: 50px; /* Height of the logo */
-  width: auto; /* Maintains aspect ratio */
-  display: block; /* Ensures no extra space around the logo */
+.logo-container img {
+  height: 50px; /* Set the height of the logo */
+  width: auto; /* Adjust width proportionally */
+  display: block; /* Remove any unwanted space around the image */
+  margin: 0 auto; /* Center the image */
 }
 
 /* Styling for the PageTitle component */
@@ -71,6 +77,25 @@ nav ul li.logo a img {
   margin-top: 20px;
 }
 
+/* Styling for the background box */
+.login-box {
+  background-color: #87a8e2; /* Background color for the box */
+  padding: 20px;
+  border-radius: 10px; /* Rounded corners for the box */
+  max-width: 400px; /* Set the maximum width */
+  margin: 20px auto; /* Center the box */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add some shadow for a nice effect */
+}
+
+/* Input fields background and text styling inside the login box */
+.input-box {
+  background-color: #87a8e2; /* Background color for the input box */
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+/* Input fields styling */
 input[type="text"],
 input[type="password"],
 input[type="submit"] {
@@ -79,14 +104,20 @@ input[type="submit"] {
   margin: 10px 0;
   border-radius: 5px;
   border: 1px solid #ddd;
+  background-color: #f5f4f0;
+  color: #333;
 }
 
+/* Button styling */
 #loginButton {
-  background-color: #4CAF50; /* Green background for the login button */
+  background-color: #21255b; /* Button background */
   color: white; /* White text */
-  cursor: pointer; /* Indicates the button is clickable */
+  cursor: pointer; /* Indicates clickable button */
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
 }
 
 #loginButton:hover {
-  background-color: #45a049; /* Slightly darker green on hover */
+  background-color: #eac261; /* Hover effect */
 }
