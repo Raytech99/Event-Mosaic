@@ -168,9 +168,9 @@ const User = require("../models/User");  // Import User model
 exports.createEvent = async (req, res) => {
   try {
       const { name, date, time, location, caption, postedBy } = req.body;
-      let user = null;
 
       // Check if postedBy is provided and valid
+      let user = null;
       if (postedBy) {
           user = await User.findById(postedBy);
           if (!user) {
@@ -178,16 +178,24 @@ exports.createEvent = async (req, res) => {
           }
       }
 
+      // Create the new event
       const newEvent = new Event({
           name,
           date,
           time,
           location,
           caption,
-          postedBy: user ? user._id : null  // Store User ID if exists, otherwise null
+          postedBy: user ? user._id : null  // Store user if exists
       });
 
       await newEvent.save();
+
+      // If user exists, add the event ID to user's userEvents array
+      if (user) {
+          user.userEvents.push(newEvent._id);  // Store event in user's userEvents
+          await user.save();
+      }
+
       res.status(201).json({ message: "Event created successfully", event: newEvent });
   } catch (error) {
       res.status(500).json({ error: error.message });
