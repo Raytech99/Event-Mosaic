@@ -132,3 +132,60 @@ exports.deleteEvent = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+
+// Natural Language Processing
+
+// Key available in the discord, it hsa not yet been added to the server
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+
+// ChatGPT Request to extract event details from post caption.
+async function extractEventDetails(text) {
+    try {
+        const response = await axios.post(
+            OPENAI_API_URL,
+            {
+                model: "gpt-4",
+                messages: [
+                    { role: "system", content: "Extract event details as a structured JSON object with fields: name, date, time, location, caption. If no future event is found, return null. If any of the fields are not found, leave them blank, do not make up any information." },
+                    { role: "user", content: text }
+                ],
+                temperature: 0,
+                max_tokens: 200,
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        return JSON.parse(response.data.choices[0].message.content);
+    } catch (error) {
+        console.error("Error extracting event details:", error.response ? error.response.data : error.message);
+        return null;
+    }
+}
+
+// Create Event from NLP
+exports.createEventFromNLP = async (req, res) => {
+    try {
+        const { text } = req.body;
+        const eventDetails = await extractEventDetails(text);
+
+        if (!eventDetails) {
+            return res.status(400).json({ error: "No valid future event found in text." });
+        }
+
+        // Create the event
+        const newEvent = new Event(eventDetails);
+        await newEvent.save();
+
+        res.status(201).json({ message: "Event created successfully", event: newEvent });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
