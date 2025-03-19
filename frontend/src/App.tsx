@@ -1,29 +1,38 @@
+// src/App.tsx
 import React from 'react';
-import './App.css';  // Import the CSS file
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';  // Import routing components
+import './App.css';
+import Auth from './components/Auth';   // Import Auth component for Login/Sign Up
+import Logo from './components/Logo';
 
 const App = () => {
   return (
-    <div>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Login</a></li>
-        </ul>
-      </nav>
+    <Router>
+      <div>
+        {/* Navigation */}
+        <nav>
+          <ul>
+            <li><Link to="/">Home</Link></li> {/* Link to Home */}
+            <li><Link to="/about">About</Link></li> {/* Link for About */}
+            <li><Link to="/auth">Login/Sign Up</Link></li> {/* Link to Login/Sign Up */}
+          </ul>
+        </nav>
 
-      <div className="logo-container">
-        <img src="/images/logo.png" alt="Logo" />
+        {/* Routes for different pages */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} /> {/* Route for the Login/Sign Up page */}
+        </Routes>
       </div>
-
-      <div id="loginDiv">
-        <h1 id="title">Welcome to Event Mosaic</h1>
-        <input type="text" placeholder="Username" />
-        <input type="password" placeholder="Password" />
-        <input type="submit" value="Login" id="loginButton" />
-      </div>
-    </div>
+    </Router>
   );
 };
+
+// Home Page (optional)
+const Home = () => (
+  <div>
+    <h1>Welcome to the Event Mosaic App</h1>
+  </div>
+);
 
 export default App;

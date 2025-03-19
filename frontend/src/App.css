@@ -72,19 +72,26 @@ nav ul li a:hover {
 }
 
 /* Styling for the Login form */
-#loginDiv {
+#authDiv {
   text-align: center;
-  margin-top: 20px;
+  position: relative;
+  margin-top: 80px;
 }
 
 /* Styling for the background box */
 .login-box {
   background-color: #87a8e2; /* Background color for the box */
-  padding: 20px;
+  padding: 40px;
   border-radius: 10px; /* Rounded corners for the box */
   max-width: 400px; /* Set the maximum width */
   margin: 20px auto; /* Center the box */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add some shadow for a nice effect */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
 }
 
 /* Input fields background and text styling inside the login box */
@@ -98,6 +105,7 @@ nav ul li a:hover {
 /* Input fields styling */
 input[type="text"],
 input[type="password"],
+input[type="email"],
 input[type="submit"] {
   width: 100%;
   padding: 10px;
@@ -120,4 +128,12 @@ input[type="submit"] {
 
 #loginButton:hover {
   background-color: #eac261; /* Hover effect */
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+  width: 100%;
 }
