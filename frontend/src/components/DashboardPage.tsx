@@ -33,6 +33,8 @@ const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showEditEvent, setShowEditEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [newEvent, setNewEvent] = useState<Event>({
     name: '',
     date: new Date().toLocaleDateString('en-US', {
@@ -83,7 +85,17 @@ const DashboardPage: React.FC = () => {
       }
 
       const eventsData = await response.json();
-      setEvents(eventsData);
+      console.log('Fetched events:', eventsData);
+      
+      // Format the events to match our Event interface
+      const formattedEvents = eventsData.map((event: any) => ({
+        ...event,
+        _id: { $oid: event._id },
+        postedBy: { $oid: event.postedBy }
+      }));
+      
+      console.log('Formatted events:', formattedEvents);
+      setEvents(formattedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       setError('Failed to load events');
@@ -101,21 +113,35 @@ const DashboardPage: React.FC = () => {
         return;
       }
 
+      // Create a copy of the event data with properly formatted postedBy
+      const eventData = {
+        ...newEvent,
+        postedBy: newEvent.postedBy.$oid // Send just the ID string
+      };
+
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newEvent)
+        body: JSON.stringify(eventData)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create event');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create event');
       }
 
       const createdEvent = await response.json();
-      setEvents([...events, createdEvent]);
+      // Convert the returned event to match our Event interface
+      const formattedEvent: Event = {
+        ...createdEvent.event,
+        _id: { $oid: createdEvent.event._id },
+        postedBy: { $oid: createdEvent.event.postedBy }
+      };
+      
+      setEvents([...events, formattedEvent]);
       setShowCreateEvent(false);
       setNewEvent({
         name: '',
@@ -131,7 +157,69 @@ const DashboardPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Error creating event:', error);
-      setError('Failed to create event');
+      setError(error instanceof Error ? error.message : 'Failed to create event');
+    }
+  };
+
+  const handleEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Editing event:', editingEvent);
+    console.log('Event ID:', editingEvent?._id);
+    console.log('Event ID $oid:', editingEvent?._id?.$oid);
+    
+    if (!editingEvent?._id?.$oid) {
+      setError('Invalid event ID');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      // Create a copy of the event data with properly formatted fields
+      const eventData = {
+        name: editingEvent.name,
+        date: editingEvent.date,
+        time: editingEvent.time,
+        location: editingEvent.location,
+        caption: editingEvent.caption,
+        postedBy: editingEvent.postedBy.$oid
+      };
+
+      const response = await fetch(`/api/events/${editingEvent._id.$oid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(eventData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update event');
+      }
+
+      const updatedEvent = await response.json();
+      
+      // Convert the returned event to match our Event interface
+      const formattedEvent: Event = {
+        ...updatedEvent.event,
+        _id: { $oid: updatedEvent.event._id },
+        postedBy: { $oid: updatedEvent.event.postedBy }
+      };
+      
+      setEvents(events.map(event => 
+        event._id?.$oid === formattedEvent._id?.['$oid'] ? formattedEvent : event
+      ));
+      setShowEditEvent(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Error updating event:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update event');
     }
   };
 
@@ -296,6 +384,16 @@ const DashboardPage: React.FC = () => {
                 <div className="event-details">
                   <div className="event-header">
                     <h3>{event.name}</h3>
+                    <button
+                      className="edit-btn"
+                      onClick={() => {
+                        console.log('Selected event for editing:', event);
+                        setEditingEvent(event);
+                        setShowEditEvent(true);
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
                   </div>
                   <div className="event-info">
                     <span>⏰ {event.time}</span>
@@ -410,6 +508,71 @@ const DashboardPage: React.FC = () => {
                   type="button"
                   className="cancel-btn"
                   onClick={() => setShowCreateEvent(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditEvent && editingEvent && (
+        <div className="create-event-modal">
+          <div className="modal-content">
+            <h2>Edit Event</h2>
+            <form onSubmit={handleEditEvent}>
+              <input
+                type="text"
+                placeholder="Event Name"
+                value={editingEvent.name}
+                onChange={(e) => setEditingEvent({ ...editingEvent, name: e.target.value })}
+                required
+              />
+              <input
+                type="date"
+                value={formatDateForInput(editingEvent.date)}
+                onChange={(e) => {
+                  const inputDate = e.target.value;
+                  const formattedDate = new Date(inputDate).toLocaleDateString('en-US', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    year: 'numeric'
+                  });
+                  setEditingEvent({ ...editingEvent, date: formattedDate });
+                }}
+                required
+              />
+              <input
+                type="time"
+                value={editingEvent.time}
+                onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Location"
+                value={editingEvent.location}
+                onChange={(e) => setEditingEvent({ ...editingEvent, location: e.target.value })}
+                required
+              />
+              <textarea
+                placeholder="Event Caption"
+                value={editingEvent.caption}
+                onChange={(e) => setEditingEvent({ ...editingEvent, caption: e.target.value })}
+                required
+              />
+              <div className="modal-buttons">
+                <button type="submit" className="create-event-btn">
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowEditEvent(false);
+                    setEditingEvent(null);
+                  }}
                 >
                   Cancel
                 </button>
