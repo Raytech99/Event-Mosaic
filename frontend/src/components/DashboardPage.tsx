@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import '../App.css';
+import { buildPath, API_ROUTES } from '../utils/api';
 
 interface Event {
   _id?: {
@@ -74,7 +75,7 @@ const DashboardPage: React.FC = () => {
         return;
       }
 
-      const response = await fetch('/api/events', {
+      const response = await fetch(buildPath(API_ROUTES.EVENTS), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -119,7 +120,7 @@ const DashboardPage: React.FC = () => {
         postedBy: newEvent.postedBy.$oid // Send just the ID string
       };
 
-      const response = await fetch('/api/events', {
+      const response = await fetch(buildPath(API_ROUTES.EVENTS), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +190,7 @@ const DashboardPage: React.FC = () => {
         postedBy: editingEvent.postedBy.$oid
       };
 
-      const response = await fetch(`/api/events/${editingEvent._id.$oid}`, {
+      const response = await fetch(buildPath(API_ROUTES.EVENT(editingEvent._id.$oid)), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +236,7 @@ const DashboardPage: React.FC = () => {
         return;
       }
 
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(buildPath(API_ROUTES.EVENT(eventId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
