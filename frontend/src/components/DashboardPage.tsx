@@ -223,6 +223,38 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete event');
+      }
+
+      // Remove the event from the state
+      setEvents(events.filter(event => event._id?.$oid !== eventId));
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete event');
+    }
+  };
+
   // Function to get category badge color
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -384,16 +416,24 @@ const DashboardPage: React.FC = () => {
                 <div className="event-details">
                   <div className="event-header">
                     <h3>{event.name}</h3>
-                    <button
-                      className="edit-btn"
-                      onClick={() => {
-                        console.log('Selected event for editing:', event);
-                        setEditingEvent(event);
-                        setShowEditEvent(true);
-                      }}
-                    >
-                      ✏️ Edit
-                    </button>
+                    <div className="event-actions">
+                      <button
+                        className="edit-btn"
+                        onClick={() => {
+                          console.log('Selected event for editing:', event);
+                          setEditingEvent(event);
+                          setShowEditEvent(true);
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </div>
                   <div className="event-info">
                     <span>⏰ {event.time}</span>
