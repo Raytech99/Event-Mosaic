@@ -256,30 +256,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Function to get category badge color
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Work":
-        return "bg-blue-500 text-white";
-      case "Personal":
-        return "bg-green-500 text-white";
-      case "Health":
-        return "bg-red-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
-    }
-  };
-
-  // Format date for display
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
-    }).format(date);
-  };
-
   // Get events for the selected date
   const selectedDateEvents = events.filter((event) => {
     const eventDate = new Date(event.date);
@@ -314,15 +290,6 @@ const DashboardPage: React.FC = () => {
   const formatDateForInput = (dateString: string) => {
     const [month, day, year] = dateString.split('/');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  };
-
-  const formatDateForDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
-    });
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
