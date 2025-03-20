@@ -1,10 +1,86 @@
 const { InstagramScraper } = require("../utils/instagramScraper");
 const { scrapeMultipleAccounts } = require("../utils/parallelScraper");
-const { validateRequest } = require("../utils/validationHelpers");
+
+// Check if Instagram credentials are configured on server
+function checkCredentials() {
+  const credentials = {
+    username: process.env.INSTAGRAM_USERNAME,
+    password: process.env.INSTAGRAM_PASSWORD,
+  };
+
+  if (!credentials.username || !credentials.password) {
+    return false;
+  }
+
+  return credentials;
+}
+
+// Validate request parameters for Instagram scraper
+function validateRequest(req) {
+  const { usernames, concurrency, postLimit, timeThreshold } = req.query;
+
+  const credentials = checkCredentials();
+
+  if (!credentials) {
+    return {
+      success: false,
+      message: "Instagram credentials not configured on server",
+    };
+  }
+
+  if (!usernames) {
+    return {
+      success: false,
+      message: "Instagram usernames are required",
+    };
+  }
+
+  if (
+    concurrency &&
+    (isNaN(parseInt(concurrency)) ||
+      parseInt(concurrency) < 1 ||
+      parseInt(concurrency) > 4)
+  ) {
+    // Check if concurrency is a number and between 1 and 4
+    return {
+      success: false,
+      message: "Invalid concurrency limit",
+    };
+  }
+
+  if (
+    postLimit &&
+    (isNaN(parseInt(postLimit)) ||
+      parseInt(postLimit) < 1 ||
+      parseInt(postLimit) > 10)
+  ) {
+    // Check if post limit is a number and between 1 and 10
+    return {
+      success: false,
+      message: "Invalid post limit",
+    };
+  }
+
+  if (
+    timeThreshold &&
+    (isNaN(parseInt(timeThreshold)) ||
+      parseInt(timeThreshold) < 1 ||
+      parseInt(timeThreshold) > 36)
+  ) {
+    // Check if time threshold is a number and between 1 and 36
+    return {
+      success: false,
+      message: "Invalid time threshold",
+    };
+  }
+
+  return {
+    success: true,
+    credentials,
+  };
+}
 
 // Get Instagram posts for multiple accounts in parallel
-// Query: usernames, concurrency, postLimit, timeThreshold
-// Returns: Object with posts from Instagram accounts
 exports.getMultipleInstagramPosts = async (req, res) => {
   console.log("GET /api/events/instagram-multiple ", req.query);
   try {
@@ -41,6 +117,43 @@ exports.getMultipleInstagramPosts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Error scraping multiple Instagram accounts",
+    });
+  }
+};
+
+// Scrape Instagram posts for a single account (deprecated)
+exports.getInstagramPosts = async (req, res) => {
+  console.log("GET /api/events/instagram/:username ", req.params);
+  try {
+    const { username, concurrency, postLimit, timeThreshold } = req.query;
+
+    const validateResult = validateRequest(req);
+    if (!validateResult.success) {
+      return res.status(400).json(validateResult);
+    }
+
+    const scraper = new InstagramScraper(credentials);
+    const result = await scraper.scrapeProfile(username, {
+      timeThreshold: parseInt(timeThreshold),
+      postLimit: 10,
+    });
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: result.posts.length,
+      timeThreshold: parseInt(timeThreshold),
+      timeframe: `Posts from the last ${timeThreshold} hours`,
+      data: result.posts,
+    });
+  } catch (error) {
+    console.error("Error in Instagram scraper controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error scraping Instagram posts",
     });
   }
 };
@@ -132,74 +245,3 @@ exports.deleteEvent = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
-
-// Natural Language Processing
-
-// Key available in the discord, it hsa not yet been added to the server
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-
-// ChatGPT Request to extract event details from post caption.
-async function extractEventDetails(text) {
-    try {
-        const response = await axios.post(
-            OPENAI_API_URL,
-            {
-                model: "gpt-4",
-                messages: [
-                    { role: "system", content: "Extract event details as a structured JSON object with fields: name, date, time, location, caption. If no future event is found, return null. If any of the fields are not found, leave them blank, do not make up any information." },
-                    { role: "user", content: text }
-                ],
-                temperature: 0,
-                max_tokens: 200,
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        return JSON.parse(response.data.choices[0].message.content);
-    } catch (error) {
-        console.error("Error extracting event details:", error.response ? error.response.data : error.message);
-        return null;
-    }
-}
-
-// Create Event from NLP
-exports.createEventFromNLP = async (req, res) => {
-    try {
-        const { rawEventId } = req.params;
-
-        // Fetch raw event data
-        const rawEvent = await RawEvent.findById(rawEventId);
-        if (!rawEvent) {
-            return res.status(404).json({ error: "Raw event not found" });
-        }
-
-        // Extract event details using NLP
-        const eventDetails = extractEventDetails(rawEvent.caption);
-        if (!eventDetails) {
-            return res.status(400).json({ error: "Failed to extract event details" });
-        }
-
-        // Create the new structured event
-        const newEvent = new Event({
-            name: eventDetails.name || "Untitled Event", // Ensures if there's no event name it still sets one
-            date: eventDetails.date,
-            time: eventDetails.time,
-            location: eventDetails.location,
-            caption: rawEvent.caption,
-        });
-
-        await newEvent.save();
-
-        res.status(201).json({ message: "Event created successfully", event: newEvent });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
