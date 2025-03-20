@@ -148,16 +148,23 @@ const DashboardPage: React.FC = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
+      const userData = localStorage.getItem('user');
+      
+      if (!token || !userData) {
         window.location.href = '/login';
         return;
       }
 
+      const currentUser = JSON.parse(userData);
+      
       // Create a copy of the event data with properly formatted postedBy
       const eventData = {
         ...newEvent,
-        postedBy: newEvent.postedBy?.['$oid'] // Send just the ID string if it exists
+        postedBy: currentUser._id, // Always set the current user's ID for custom events
+        source: 'user'
       };
+
+      console.log('Creating event with data:', eventData);
 
       const response = await fetch(buildPath(API_ROUTES.EVENTS), {
         method: 'POST',
@@ -174,11 +181,13 @@ const DashboardPage: React.FC = () => {
       }
 
       const createdEvent = await response.json();
+      console.log('Created event response:', createdEvent);
+      
       // Convert the returned event to match our Event interface
       const formattedEvent: Event = {
         ...createdEvent.event,
         _id: { $oid: createdEvent.event._id },
-        postedBy: { $oid: createdEvent.event.postedBy },
+        postedBy: { $oid: currentUser._id },
         source: 'user'
       };
       
@@ -194,7 +203,7 @@ const DashboardPage: React.FC = () => {
         time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
         location: '',
         caption: '',
-        postedBy: { $oid: user?._id || '' },
+        postedBy: { $oid: currentUser._id },
         source: 'user'
       });
     } catch (error) {

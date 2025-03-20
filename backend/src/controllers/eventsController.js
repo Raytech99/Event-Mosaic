@@ -164,61 +164,21 @@ exports.getInstagramPosts = async (req, res) => {
 const Event = require("../models/Events");
 const User = require("../models/User");  // Import User model
 
-// Create Event
-exports.createEvent = async (req, res) => {
-  try {
-      const { name, date, time, location, caption, postedBy, source, baseEventId } = req.body;
-
-      // Check if postedBy is provided and valid
-      let user = null;
-      if (postedBy) {
-          user = await User.findById(postedBy);
-          if (!user) {
-              return res.status(400).json({ error: "Invalid User ID" });
-          }
-      }
-
-      // Create the new event
-      const newEvent = new Event({
-          name,
-          date,
-          time,
-          location,
-          caption,
-          postedBy: user ? user._id : null,
-          source: source || 'user',
-          baseEventId: baseEventId || null
-      });
-
-      await newEvent.save();
-
-      // If user exists, add the event ID to user's userEvents array
-      if (user) {
-          user.userEvents.push(newEvent._id);
-          await user.save();
-      }
-
-      // Format the response to match frontend expectations
-      const formattedEvent = {
-          ...newEvent.toObject(),
-          _id: { $oid: newEvent._id.toString() },
-          postedBy: user ? { $oid: user._id.toString() } : null,
-          baseEventId: baseEventId ? { $oid: baseEventId.toString() } : null,
-          createdAt: newEvent.createdAt ? { $date: newEvent.createdAt.toISOString() } : undefined,
-          updatedAt: newEvent.updatedAt ? { $date: newEvent.updatedAt.toISOString() } : undefined
-      };
-
-      res.status(201).json({ message: "Event created successfully", event: formattedEvent });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-};
-
-
 // Get All Events
 exports.getAllEvents = async (req, res) => {
     try {
-        const events = await Event.find().populate("postedBy", "username email");
+        // Get the current user's ID from the JWT token
+        const userId = req.user.userId;
+
+        // Find all events that are either:
+        // 1. AI-sourced events (source: 'ai')
+        // 2. Custom events created by the current user (source: 'user' AND postedBy: userId)
+        const events = await Event.find({
+            $or: [
+                { source: 'ai' },
+                { source: 'user', postedBy: userId }
+            ]
+        }).populate("postedBy", "username email");
         
         // Format the response to match frontend expectations
         const formattedEvents = events.map(event => ({
@@ -232,6 +192,56 @@ exports.getAllEvents = async (req, res) => {
 
         res.status(200).json(formattedEvents);
     } catch (error) {
+        console.error('Error in getAllEvents:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Create Event
+exports.createEvent = async (req, res) => {
+    try {
+        const { name, date, time, location, caption, source, baseEventId } = req.body;
+        
+        // Get the current user's ID from the JWT token
+        const userId = req.user.userId;
+        
+        // Verify the user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        // Create the new event
+        const newEvent = new Event({
+            name,
+            date,
+            time,
+            location,
+            caption,
+            postedBy: userId, // Always set postedBy to the current user's ID for custom events
+            source: source || 'user',
+            baseEventId: baseEventId || null
+        });
+
+        await newEvent.save();
+
+        // Add the event ID to user's userEvents array
+        user.userEvents.push(newEvent._id);
+        await user.save();
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...newEvent.toObject(),
+            _id: { $oid: newEvent._id.toString() },
+            postedBy: { $oid: userId.toString() },
+            baseEventId: baseEventId ? { $oid: baseEventId.toString() } : null,
+            createdAt: newEvent.createdAt ? { $date: newEvent.createdAt.toISOString() } : undefined,
+            updatedAt: newEvent.updatedAt ? { $date: newEvent.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(201).json({ message: "Event created successfully", event: formattedEvent });
+    } catch (error) {
+        console.error('Error in createEvent:', error);
         res.status(500).json({ error: error.message });
     }
 };
