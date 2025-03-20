@@ -59,17 +59,23 @@ nav ul li a:hover {
   text-align: center;
   width: 100%;
   position: absolute;
-  top: 30%;
+  top: 15%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
+  transform: translate(-50%, 0);
+  z-index: 1;
+  margin-bottom: 2rem;
 }
 
 .logo-container img {
-  height: 100px;
+  height: 150px;
   width: auto;
   display: block;
   margin: 0 auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-container img:hover {
+  transform: scale(1.05);
 }
 
 /* Styling for the PageTitle component */
@@ -91,8 +97,8 @@ nav ul li a:hover {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
+  transform: translate(-50%, -35%);
+  z-index: 2;
 }
 
 /* Input box styling */
@@ -152,75 +158,79 @@ input[type="email"]:focus {
 .dashboard-container {
   min-height: 100vh;
   background-color: #f5f5f5;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
 }
 
 .dashboard-header {
   background-color: white;
   border-bottom: 1px solid #e5e7eb;
-  padding: 1rem;
+  padding: 1rem 0;
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100vw;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  left: 0;
+  right: 0;
+  margin: 0;
 }
 
 .header-content {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  padding: 0 2rem;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .logo {
-  height: 2rem;
+  height: 2.5rem;
   width: auto;
 }
 
 .app-title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #21255b;
+  white-space: nowrap;
 }
 
 .user-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
-}
-
-.notification-btn {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: #ef4444;
-  border-radius: 50%;
+  gap: 1.5rem;
+  margin-left: auto;
 }
 
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+  background-color: #f3f4f6;
 }
 
 .avatar {
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   background-color: #21255b;
   color: white;
   border-radius: 50%;
@@ -228,10 +238,12 @@ input[type="email"]:focus {
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  font-size: 1rem;
 }
 
 .username {
   font-weight: 500;
+  color: #1f2937;
 }
 
 .logout-btn {
@@ -241,17 +253,31 @@ input[type="email"]:focus {
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .logout-btn:hover {
   background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-main {
+  flex: 1;
+  width: 100%;
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.dashboard-content {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-header-section {
@@ -394,6 +420,8 @@ input[type="email"]:focus {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .calendar {

@@ -5,22 +5,21 @@ import interactionPlugin from '@fullcalendar/interaction';
 import '../App.css';
 
 interface Event {
-  id: number;
+  _id?: {
+    $oid: string;
+  };
   name: string;
   date: string;
+  time: string;
   location: string;
-  category: string;
-  attendees: number;
-  description?: string;
-  caption?: string;
-  time?: string;
+  caption: string;
   postedBy: {
     $oid: string;
   };
 }
 
 interface User {
-  id: number;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -34,14 +33,16 @@ const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState<Partial<Event>>({
+  const [newEvent, setNewEvent] = useState<Event>({
     name: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split('/').join('/'),
+    time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
     location: '',
-    category: 'Work',
-    attendees: 1,
-    description: '',
-    time: '',
+    caption: '',
     postedBy: { $oid: '' }
   });
 
@@ -49,7 +50,12 @@ const DashboardPage: React.FC = () => {
     // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      setNewEvent(prev => ({
+        ...prev,
+        postedBy: { $oid: parsedUser._id }
+      }));
     } else {
       window.location.href = '/login';
       return;
@@ -113,13 +119,15 @@ const DashboardPage: React.FC = () => {
       setShowCreateEvent(false);
       setNewEvent({
         name: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).split('/').join('/'),
+        time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
         location: '',
-        category: 'Work',
-        attendees: 1,
-        description: '',
-        time: '',
-        postedBy: { $oid: '' }
+        caption: '',
+        postedBy: { $oid: user?._id || '' }
       });
     } catch (error) {
       console.error('Error creating event:', error);
@@ -176,10 +184,34 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleEventClick = (clickInfo: any) => {
-    const event = events.find(e => e.id === parseInt(clickInfo.event.id));
+    const event = events.find(e => e._id?.$oid === clickInfo.event.id);
     if (event) {
       setSelectedDate(new Date(event.date));
     }
+  };
+
+  const formatDateForInput = (dateString: string) => {
+    const [month, day, year] = dateString.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputDate = e.target.value; // This will be in YYYY-MM-DD format
+    const formattedDate = new Date(inputDate).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+    setNewEvent({ ...newEvent, date: formattedDate });
   };
 
   if (isLoading) {
@@ -200,10 +232,6 @@ const DashboardPage: React.FC = () => {
             <span className="app-title">EventMosaic</span>
           </div>
           <div className="user-section">
-            <button className="notification-btn">
-              <span className="notification-icon">🔔</span>
-              <span className="notification-badge"></span>
-            </button>
             <div className="user-profile">
               <div className="avatar">
                 {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
@@ -213,13 +241,17 @@ const DashboardPage: React.FC = () => {
               </span>
             </div>
             <button className="logout-btn" onClick={handleLogout}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
               Logout
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
       <main className="dashboard-main">
         <div className="dashboard-header-section">
           <div>
@@ -234,195 +266,160 @@ const DashboardPage: React.FC = () => {
           </button>
         </div>
 
-        {showCreateEvent && (
-          <div className="create-event-modal">
-            <div className="modal-content">
-              <h2>Create New Event</h2>
-              <form onSubmit={handleCreateEvent}>
-                <input
-                  type="text"
-                  placeholder="Event Name"
-                  value={newEvent.name}
-                  onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                  required
-                />
-                <input
-                  type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Location"
-                  value={newEvent.location}
-                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                  required
-                />
-                <select
-                  value={newEvent.category}
-                  onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
-                  required
-                >
-                  <option key="work" value="Work">Work</option>
-                  <option key="personal" value="Personal">Personal</option>
-                  <option key="health" value="Health">Health</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Number of Attendees"
-                  value={newEvent.attendees}
-                  onChange={(e) => setNewEvent({ ...newEvent, attendees: parseInt(e.target.value) })}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Instagram Account ID"
-                  value={newEvent.postedBy?.$oid || ''}
-                  onChange={(e) => setNewEvent({ ...newEvent, postedBy: { $oid: e.target.value } })}
-                  required
-                />
-                <textarea
-                  placeholder="Event Description"
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                />
-                <div className="modal-buttons">
-                  <button type="submit" className="create-event-btn">Create Event</button>
+        <div className="tabs">
+          <button
+            className={`tab ${activeTab === 'upcoming' ? 'active' : ''}`}
+            onClick={() => setActiveTab('upcoming')}
+          >
+            All Upcoming
+          </button>
+          <button
+            className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveTab('calendar')}
+          >
+            Calendar
+          </button>
+        </div>
+
+        {activeTab === 'upcoming' ? (
+          <div className="events-list">
+            {events.map((event) => (
+              <div key={event._id?.$oid} className="event-card">
+                <div className="event-date">
+                  <span className="month">
+                    {new Date(event.date).toLocaleString('default', { month: 'short' })}
+                  </span>
+                  <span className="day">
+                    {new Date(event.date).getDate()}
+                  </span>
+                </div>
+                <div className="event-details">
+                  <div className="event-header">
+                    <h3>{event.name}</h3>
+                  </div>
+                  <div className="event-info">
+                    <span>⏰ {event.time}</span>
+                    <span>📍 {event.location}</span>
+                    <span>{event.caption}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="calendar-view">
+            <div className="calendar">
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                selectable={true}
+                select={handleDateSelect}
+                eventClick={handleEventClick}
+                events={events.map(event => ({
+                  id: event._id?.$oid,
+                  title: event.name,
+                  start: event.date,
+                  backgroundColor: '#4a90e2',
+                  borderColor: '#4a90e2',
+                  extendedProps: {
+                    caption: event.caption,
+                    location: event.location,
+                    time: event.time,
+                    postedBy: event.postedBy
+                  }
+                }))}
+              />
+            </div>
+            <div className="selected-date-events">
+              <h3>
+                Events for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </h3>
+              {selectedDateEvents.length > 0 ? (
+                selectedDateEvents.map((event) => (
+                  <div key={event._id?.$oid} className="event-card">
+                    <div className="event-details">
+                      <div className="event-header">
+                        <h3>{event.name}</h3>
+                      </div>
+                      <div className="event-info">
+                        <span>⏰ {event.time}</span>
+                        <span>📍 {event.location}</span>
+                        <span>{event.caption}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-events">
+                  <p>No events scheduled for this day.</p>
                   <button 
-                    type="button" 
-                    className="cancel-btn"
-                    onClick={() => setShowCreateEvent(false)}
+                    className="create-event-btn"
+                    onClick={() => setShowCreateEvent(true)}
                   >
-                    Cancel
+                    Create new event
                   </button>
                 </div>
-              </form>
+              )}
             </div>
           </div>
         )}
-
-        <div className="dashboard-content">
-          <div className="tabs">
-            <button 
-              className={`tab ${activeTab === 'upcoming' ? 'active' : ''}`}
-              onClick={() => setActiveTab('upcoming')}
-            >
-              All Upcoming
-            </button>
-            <button 
-              className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
-              onClick={() => setActiveTab('calendar')}
-            >
-              Calendar
-            </button>
-          </div>
-
-          {activeTab === 'upcoming' ? (
-            <div className="events-list">
-              {events.map((event) => (
-                <div key={event.id} className="event-card">
-                  <div className="event-date">
-                    <span className="month">
-                      {new Date(event.date).toLocaleDateString("en-US", { month: "short" })}
-                    </span>
-                    <span className="day">
-                      {new Date(event.date).getDate()}
-                    </span>
-                  </div>
-                  <div className="event-details">
-                    <div className="event-header">
-                      <h3>{event.name}</h3>
-                      <span className={`category-badge ${getCategoryColor(event.category)}`}>
-                        {event.category}
-                      </span>
-                    </div>
-                    <div className="event-info">
-                      <span key="name"><strong>{event.name}</strong></span>
-                      <span key="location">📍 {event.location}</span>
-                      <span key="postedBy">👤 Posted by: {event.postedBy?.$oid}</span>
-                    </div>
-                    {event.description && (
-                      <p className="event-description">{event.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="calendar-view">
-              <div className="calendar">
-                <FullCalendar
-                  plugins={[dayGridPlugin, interactionPlugin]}
-                  initialView="dayGridMonth"
-                  headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,dayGridWeek'
-                  }}
-                  editable={true}
-                  selectable={true}
-                  selectMirror={true}
-                  dayMaxEvents={true}
-                  weekends={true}
-                  events={events.map(event => ({
-                    id: `event-${event.id}`,
-                    title: event.name,
-                    start: event.date,
-                    backgroundColor: getCategoryColor(event.category).split(' ')[0],
-                    borderColor: getCategoryColor(event.category).split(' ')[0],
-                    extendedProps: {
-                      category: event.category,
-                      location: event.location,
-                      attendees: event.attendees,
-                      description: event.description
-                    }
-                  }))}
-                  select={handleDateSelect}
-                  eventClick={handleEventClick}
-                />
-              </div>
-              <div className="selected-date-events">
-                <h3>Events for {selectedDate.toLocaleDateString()}</h3>
-                {selectedDateEvents.length > 0 ? (
-                  selectedDateEvents.map((event) => (
-                    <div key={event.id} className="event-card">
-                      <div className="event-details">
-                        <div className="event-header">
-                          <h3>{event.name}</h3>
-                          <span className={`category-badge ${getCategoryColor(event.category)}`}>
-                            {event.category}
-                          </span>
-                        </div>
-                        <div className="event-info">
-                          <span key="name"><strong>{event.name}</strong></span>
-                          <span key="location">📍 {event.location}</span>
-                          <span key="postedBy">👤 Posted by: {event.postedBy?.$oid}</span>
-                        </div>
-                        {event.description && (
-                          <p className="event-description">{event.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-events">
-                    <p>No events scheduled for this day.</p>
-                    <button 
-                      className="create-event-btn"
-                      onClick={() => setShowCreateEvent(true)}
-                    >
-                      Create new event
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </main>
+
+      {showCreateEvent && (
+        <div className="create-event-modal">
+          <div className="modal-content">
+            <h2>Create New Event</h2>
+            <form onSubmit={handleCreateEvent}>
+              <input
+                type="text"
+                placeholder="Event Name"
+                value={newEvent.name}
+                onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                required
+              />
+              <input
+                type="date"
+                value={formatDateForInput(newEvent.date)}
+                onChange={handleDateChange}
+                required
+              />
+              <input
+                type="time"
+                value={newEvent.time}
+                onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Location"
+                value={newEvent.location}
+                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                required
+              />
+              <textarea
+                placeholder="Event Caption"
+                value={newEvent.caption}
+                onChange={(e) => setNewEvent({ ...newEvent, caption: e.target.value })}
+                required
+              />
+              <div className="modal-buttons">
+                <button type="submit" className="create-event-btn">
+                  Create Event
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => setShowCreateEvent(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default DashboardPage; 
+export default DashboardPage;
