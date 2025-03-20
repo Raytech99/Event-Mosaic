@@ -167,7 +167,7 @@ const User = require("../models/User");  // Import User model
 // Create Event
 exports.createEvent = async (req, res) => {
   try {
-      const { name, date, time, location, caption, postedBy } = req.body;
+      const { name, date, time, location, caption, postedBy, source, baseEventId } = req.body;
 
       // Check if postedBy is provided and valid
       let user = null;
@@ -185,18 +185,30 @@ exports.createEvent = async (req, res) => {
           time,
           location,
           caption,
-          postedBy: user ? user._id : null  // Store user if exists
+          postedBy: user ? user._id : null,
+          source: source || 'user',
+          baseEventId: baseEventId || null
       });
 
       await newEvent.save();
 
       // If user exists, add the event ID to user's userEvents array
       if (user) {
-          user.userEvents.push(newEvent._id);  // Store event in user's userEvents
+          user.userEvents.push(newEvent._id);
           await user.save();
       }
 
-      res.status(201).json({ message: "Event created successfully", event: newEvent });
+      // Format the response to match frontend expectations
+      const formattedEvent = {
+          ...newEvent.toObject(),
+          _id: { $oid: newEvent._id.toString() },
+          postedBy: user ? { $oid: user._id.toString() } : null,
+          baseEventId: baseEventId ? { $oid: baseEventId.toString() } : null,
+          createdAt: newEvent.createdAt ? { $date: newEvent.createdAt.toISOString() } : undefined,
+          updatedAt: newEvent.updatedAt ? { $date: newEvent.updatedAt.toISOString() } : undefined
+      };
+
+      res.status(201).json({ message: "Event created successfully", event: formattedEvent });
   } catch (error) {
       res.status(500).json({ error: error.message });
   }
@@ -207,7 +219,18 @@ exports.createEvent = async (req, res) => {
 exports.getAllEvents = async (req, res) => {
     try {
         const events = await Event.find().populate("postedBy", "username email");
-        res.status(200).json(events);
+        
+        // Format the response to match frontend expectations
+        const formattedEvents = events.map(event => ({
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy._id.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        }));
+
+        res.status(200).json(formattedEvents);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -218,7 +241,18 @@ exports.getEventById = async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: "Event not found" });
-        res.status(200).json(event);
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(200).json(formattedEvent);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -229,7 +263,18 @@ exports.updateEvent = async (req, res) => {
     try {
         const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!event) return res.status(404).json({ message: "Event not found" });
-        res.status(200).json({ message: "Event updated successfully", event });
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(200).json({ message: "Event updated successfully", event: formattedEvent });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

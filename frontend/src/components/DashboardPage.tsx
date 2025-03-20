@@ -14,9 +14,17 @@ interface Event {
   time: string;
   location: string;
   caption: string;
-  postedBy: {
+  postedBy?: {
     $oid: string;
-  };
+  } | null;
+  source: 'ai' | 'user';
+  baseEventId?: string | null;
+  createdAt?: {
+    $date: string;
+  } | null;
+  updatedAt?: {
+    $date: string;
+  } | null;
 }
 
 interface User {
@@ -24,6 +32,8 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  followedAccounts?: Array<{ $oid: string }>;
+  userEvents?: Array<{ $oid: string }>;
 }
 
 const DashboardPage: React.FC = () => {
@@ -46,19 +56,27 @@ const DashboardPage: React.FC = () => {
     time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
     location: '',
     caption: '',
-    postedBy: { $oid: '' }
+    postedBy: { $oid: '' },
+    source: 'user'
   });
 
   useEffect(() => {
     // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setNewEvent(prev => ({
-        ...prev,
-        postedBy: { $oid: parsedUser._id }
-      }));
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setNewEvent(prev => ({
+          ...prev,
+          postedBy: { $oid: parsedUser._id },
+          source: parsedUser.followedAccounts?.length > 0 ? 'ai' : 'user'
+        }));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        window.location.href = '/login';
+        return;
+      }
     } else {
       window.location.href = '/login';
       return;
@@ -70,37 +88,58 @@ const DashboardPage: React.FC = () => {
   const fetchEvents = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Token:', token);
+      
       if (!token) {
+        console.error('No token found');
         window.location.href = '/login';
         return;
       }
 
-      const response = await fetch(buildPath(API_ROUTES.EVENTS), {
+      const url = buildPath(API_ROUTES.EVENTS);
+      console.log('Fetching events from:', url);
+
+      const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch events');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch events');
       }
 
       const eventsData = await response.json();
-      console.log('Fetched events:', eventsData);
+      console.log('Raw events data:', eventsData);
+      
+      if (!Array.isArray(eventsData)) {
+        console.error('Events data is not an array:', eventsData);
+        throw new Error('Invalid events data format');
+      }
       
       // Format the events to match our Event interface
       const formattedEvents = eventsData.map((event: any) => ({
         ...event,
-        _id: { $oid: event._id },
-        postedBy: { $oid: event.postedBy }
+        _id: event._id?.$oid ? { $oid: event._id.$oid } : { $oid: event._id },
+        postedBy: event.postedBy ? (event.postedBy.$oid ? { $oid: event.postedBy.$oid } : { $oid: event.postedBy }) : null,
+        source: event.source || 'user',
+        baseEventId: event.baseEventId?.$oid || event.baseEventId || undefined,
+        createdAt: event.createdAt?.$date ? { $date: event.createdAt.$date } : event.createdAt ? { $date: event.createdAt } : undefined,
+        updatedAt: event.updatedAt?.$date ? { $date: event.updatedAt.$date } : event.updatedAt ? { $date: event.updatedAt } : undefined
       }));
       
       console.log('Formatted events:', formattedEvents);
       setEvents(formattedEvents);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching events:', error);
-      setError('Failed to load events');
-    } finally {
+      setError(error instanceof Error ? error.message : 'Failed to load events');
       setIsLoading(false);
     }
   };
@@ -117,7 +156,7 @@ const DashboardPage: React.FC = () => {
       // Create a copy of the event data with properly formatted postedBy
       const eventData = {
         ...newEvent,
-        postedBy: newEvent.postedBy.$oid // Send just the ID string
+        postedBy: newEvent.postedBy?.['$oid'] // Send just the ID string if it exists
       };
 
       const response = await fetch(buildPath(API_ROUTES.EVENTS), {
@@ -139,7 +178,8 @@ const DashboardPage: React.FC = () => {
       const formattedEvent: Event = {
         ...createdEvent.event,
         _id: { $oid: createdEvent.event._id },
-        postedBy: { $oid: createdEvent.event.postedBy }
+        postedBy: { $oid: createdEvent.event.postedBy },
+        source: 'user'
       };
       
       setEvents([...events, formattedEvent]);
@@ -154,7 +194,8 @@ const DashboardPage: React.FC = () => {
         time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
         location: '',
         caption: '',
-        postedBy: { $oid: user?._id || '' }
+        postedBy: { $oid: user?._id || '' },
+        source: 'user'
       });
     } catch (error) {
       console.error('Error creating event:', error);
@@ -187,11 +228,24 @@ const DashboardPage: React.FC = () => {
         time: editingEvent.time,
         location: editingEvent.location,
         caption: editingEvent.caption,
-        postedBy: editingEvent.postedBy.$oid
+        postedBy: editingEvent.postedBy?.['$oid'],
+        source: editingEvent.source === 'ai' ? 'user' : 'user', // If editing an AI event, create a user override
+        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId // Set baseEventId if it's an AI event
       };
 
-      const response = await fetch(buildPath(API_ROUTES.EVENT(editingEvent._id.$oid)), {
-        method: 'PUT',
+      console.log('Sending event data:', eventData);
+
+      // If this is an AI event, create a new user event instead of updating
+      const method = editingEvent.source === 'ai' ? 'POST' : 'PUT';
+      const url = editingEvent.source === 'ai' 
+        ? buildPath(API_ROUTES.EVENTS)
+        : buildPath(API_ROUTES.EVENT(editingEvent._id.$oid));
+
+      console.log('Request URL:', url);
+      console.log('Request method:', method);
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -199,23 +253,48 @@ const DashboardPage: React.FC = () => {
         body: JSON.stringify(eventData)
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to update event');
       }
 
-      const updatedEvent = await response.json();
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
+
+      // Handle both the POST (AI event) and PUT (custom event) responses
+      const updatedEventData = responseData.event || responseData;
       
       // Convert the returned event to match our Event interface
       const formattedEvent: Event = {
-        ...updatedEvent.event,
-        _id: { $oid: updatedEvent.event._id },
-        postedBy: { $oid: updatedEvent.event.postedBy }
+        ...updatedEventData,
+        _id: { $oid: updatedEventData._id },
+        postedBy: updatedEventData.postedBy ? { $oid: updatedEventData.postedBy } : null,
+        source: updatedEventData.source || 'user',
+        baseEventId: updatedEventData.baseEventId || null,
+        createdAt: updatedEventData.createdAt ? { $date: updatedEventData.createdAt } : null,
+        updatedAt: updatedEventData.updatedAt ? { $date: updatedEventData.updatedAt } : null
       };
+
+      console.log('Formatted event:', formattedEvent);
+
+      if (editingEvent.source === 'ai') {
+        // If we created a new user event from an AI event, add it to the list
+        setEvents([...events, formattedEvent]);
+      } else {
+        // If we updated an existing user event, update it in the list
+        const eventIdToUpdate = editingEvent._id?.$oid;
+        if (!eventIdToUpdate) {
+          console.error('Missing event ID for update');
+          return;
+        }
+        setEvents(events.map(event => 
+          event._id?.$oid === eventIdToUpdate ? formattedEvent : event
+        ));
+      }
       
-      setEvents(events.map(event => 
-        event._id?.$oid === formattedEvent._id?.['$oid'] ? formattedEvent : event
-      ));
       setShowEditEvent(false);
       setEditingEvent(null);
     } catch (error) {
@@ -369,48 +448,76 @@ const DashboardPage: React.FC = () => {
           </button>
         </div>
 
-        {activeTab === 'upcoming' ? (
+        {isLoading ? (
+          <div className="loading-state">
+            <p>Loading events...</p>
+          </div>
+        ) : error ? (
+          <div className="error-state">
+            <p>Error: {error}</p>
+            <button onClick={fetchEvents} className="retry-btn">Try Again</button>
+          </div>
+        ) : activeTab === 'upcoming' ? (
           <div className="events-list">
-            {events.map((event) => (
-              <div key={event._id?.$oid} className="event-card">
-                <div className="event-date">
-                  <span className="month">
-                    {new Date(event.date).toLocaleString('default', { month: 'short' })}
-                  </span>
-                  <span className="day">
-                    {new Date(event.date).getDate()}
-                  </span>
-                </div>
-                <div className="event-details">
-                  <div className="event-header">
-                    <h3>{event.name}</h3>
-                    <div className="event-actions">
-                      <button
-                        className="edit-btn"
-                        onClick={() => {
-                          console.log('Selected event for editing:', event);
-                          setEditingEvent(event);
-                          setShowEditEvent(true);
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
-                      >
-                        🗑️ Delete
-                      </button>
+            {events.length === 0 ? (
+              <div className="no-events">
+                <p>No events found. Create your first event!</p>
+                <button 
+                  className="create-event-btn"
+                  onClick={() => setShowCreateEvent(true)}
+                >
+                  Create New Event
+                </button>
+              </div>
+            ) : (
+              events.map((event) => (
+                <div key={event._id?.$oid} className="event-card">
+                  <div className="event-date">
+                    <span className="month">
+                      {new Date(event.date).toLocaleString('default', { month: 'short' })}
+                    </span>
+                    <span className="day">
+                      {new Date(event.date).getDate()}
+                    </span>
+                  </div>
+                  <div className="event-details">
+                    <div className="event-header">
+                      <div className="event-title">
+                        <h3>{event.name}</h3>
+                        <span className={`source-badge ${event.source}`}>
+                          {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                        </span>
+                      </div>
+                      <div className="event-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={() => {
+                            console.log('Selected event for editing:', event);
+                            setEditingEvent(event);
+                            setShowEditEvent(true);
+                          }}
+                        >
+                          {event.source === 'ai' ? '✨ Customize' : '✏️ Edit'}
+                        </button>
+                        {event.source === 'user' && (
+                          <button
+                            className="delete-btn"
+                            onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="event-info">
+                      <span>⏰ {event.time}</span>
+                      <span>📍 {event.location}</span>
+                      <span>{event.caption}</span>
                     </div>
                   </div>
-                  <div className="event-info">
-                    <span>⏰ {event.time}</span>
-                    <span>📍 {event.location}</span>
-                    <span>{event.caption}</span>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         ) : (
           <div className="calendar-view">

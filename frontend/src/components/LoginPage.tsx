@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import '../App.css';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -38,8 +40,8 @@ const LoginPage = () => {
           email: data.email
         }));
         setMessage('Login successful!');
-        // Redirect to dashboard after successful login
-        window.location.href = '/dashboard';
+        // Use React Router's navigate instead of window.location
+        navigate('/dashboard');
       } else {
         setMessage(data.msg || 'Login failed. Please try again.');
       }
@@ -55,9 +57,9 @@ const LoginPage = () => {
     <div>
       <nav>
         <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">About</a></li>
-          <li><a href="/login">Login</a></li>
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/about">About</Link></li>
+          <li><Link to="/login">Login</Link></li>
         </ul>
       </nav>
 
@@ -109,7 +111,7 @@ const LoginPage = () => {
           textAlign: 'center',
           color: '#666'
         }}>
-          Don't have an account? <a href="/register" style={{ color: '#21255b' }}>Register here</a>
+          Don't have an account? <Link to="/register" style={{ color: '#21255b' }}>Register here</Link>
         </p>
       </div>
     </div>
