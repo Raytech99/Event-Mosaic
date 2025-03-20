@@ -1,38 +1,43 @@
-// src/App.tsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';  // Import routing components
-import './App.css';
-import Auth from './components/Auth';   // Import Auth component for Login/Sign Up
-import Logo from './components/Logo';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';  // Import the CSS file
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import DashboardPage from './components/DashboardPage';
 
-const App = () => {
+const App: React.FC = () => {
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!localStorage.getItem('token');
+  };
+
+  // Protected Route component
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!isAuthenticated()) {
+      return <Navigate to="/login" />;
+    }
+    return <>{children}</>;
+  };
+
   return (
     <Router>
-      <div>
-        {/* Navigation */}
-        <nav>
-          <ul>
-            <li><Link to="/">Home</Link></li> {/* Link to Home */}
-            <li><Link to="/about">About</Link></li> {/* Link for About */}
-            <li><Link to="/auth">Login/Sign Up</Link></li> {/* Link to Login/Sign Up */}
-          </ul>
-        </nav>
-
-        {/* Routes for different pages */}
+      <div className="App">
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth" element={<Auth />} /> {/* Route for the Login/Sign Up page */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </div>
     </Router>
   );
 };
-
-// Home Page (optional)
-const Home = () => (
-  <div>
-    <h1>Welcome to the Event Mosaic App</h1>
-  </div>
-);
 
 export default App;

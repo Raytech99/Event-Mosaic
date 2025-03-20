@@ -299,11 +299,18 @@ class InstagramScraper {
         return { date, caption, imageUrl };
       });
 
+      // Extract video ID if it's a reel or video post
+      if (postUrl.includes("/reel/")) {
+        const videoId = postUrl.split("/reel/")[1].split("/")[0];
+        postData.videoId = videoId;
+      }
+
       return {
         url: postUrl,
         date: postData.date,
         caption: postData.caption,
         imageUrl: postData.imageUrl,
+        videoId: postData.videoId,
       };
     } catch (error) {
       console.error(`Error processing post ${postUrl}: ${error.message}`);
