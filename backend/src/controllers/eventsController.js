@@ -212,22 +212,15 @@ exports.createEvent = async (req, res) => {
         }
 
         // Create the new event
-        const newEvent = new Event({
+        const newEvent = await Event.create({
             name,
             date,
             time,
             location,
             caption,
-            postedBy: userId, // Always set postedBy to the current user's ID for custom events
-            source: source || 'user',
-            baseEventId: baseEventId || null
+            postedBy: userId,
+            source: 'user'
         });
-
-        await newEvent.save();
-
-        // Add the event ID to user's userEvents array
-        user.userEvents.push(newEvent._id);
-        await user.save();
 
         // Format the response to match frontend expectations
         const formattedEvent = {
