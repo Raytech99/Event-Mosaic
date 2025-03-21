@@ -67,7 +67,7 @@ const LoginPage = () => {
       </div>
 
       <div id="loginDiv">
-        <h1 id="title">Login</h1>
+        <h1 id="title">Login CICD test</h1>
 
         <form onSubmit={handleSubmit}>
           <div className="input-box">
