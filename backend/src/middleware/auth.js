@@ -1,23 +1,36 @@
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
+const jwt = require('jsonwebtoken');
 
-// Auth middleware, checks if token is valid, if it is, adds user ID to request object
-module.exports = function (req, res, next) {
-  const token = req.header("x-auth-token");
+const auth = (req, res, next) => {
+    try {
+        // Get token from header
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        console.log('Received token:', token ? token.substring(0, 20) + '...' : 'none');
+        
+        if (!token) {
+            return res.status(401).json({ error: 'No authentication token, access denied' });
+        }
 
-  if (!token) {
-    return res
-      .status(401)
-      .json({ success: false, error: "No token, authorization denied" });
-  }
+        // Debug: Check if JWT_SECRET is available
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is not defined in environment variables');
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Verify token
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        console.log('Token verified, user:', verified);
 
-    req.user = { id: decoded.userId };
+        if (!verified) {
+            return res.status(401).json({ error: 'Token verification failed, authorization denied' });
+        }
 
-    next();
-  } catch (error) {
-    res.status(401).json({ success: false, error: "Token is not valid" });
-  }
+        // Add user info to request
+        req.user = verified;
+        next();
+    } catch (error) {
+        console.error('Auth middleware error:', error);
+        res.status(401).json({ error: 'Token is not valid' });
+    }
 };
+
+module.exports = auth; 

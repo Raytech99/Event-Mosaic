@@ -1,10 +1,86 @@
 const { InstagramScraper } = require("../utils/instagramScraper");
 const { scrapeMultipleAccounts } = require("../utils/parallelScraper");
-const { validateRequest } = require("../utils/validationHelpers");
+
+// Check if Instagram credentials are configured on server
+function checkCredentials() {
+  const credentials = {
+    username: process.env.INSTAGRAM_USERNAME,
+    password: process.env.INSTAGRAM_PASSWORD,
+  };
+
+  if (!credentials.username || !credentials.password) {
+    return false;
+  }
+
+  return credentials;
+}
+
+// Validate request parameters for Instagram scraper
+function validateRequest(req) {
+  const { usernames, concurrency, postLimit, timeThreshold } = req.query;
+
+  const credentials = checkCredentials();
+
+  if (!credentials) {
+    return {
+      success: false,
+      message: "Instagram credentials not configured on server",
+    };
+  }
+
+  if (!usernames) {
+    return {
+      success: false,
+      message: "Instagram usernames are required",
+    };
+  }
+
+  if (
+    concurrency &&
+    (isNaN(parseInt(concurrency)) ||
+      parseInt(concurrency) < 1 ||
+      parseInt(concurrency) > 4)
+  ) {
+    // Check if concurrency is a number and between 1 and 4
+    return {
+      success: false,
+      message: "Invalid concurrency limit",
+    };
+  }
+
+  if (
+    postLimit &&
+    (isNaN(parseInt(postLimit)) ||
+      parseInt(postLimit) < 1 ||
+      parseInt(postLimit) > 10)
+  ) {
+    // Check if post limit is a number and between 1 and 10
+    return {
+      success: false,
+      message: "Invalid post limit",
+    };
+  }
+
+  if (
+    timeThreshold &&
+    (isNaN(parseInt(timeThreshold)) ||
+      parseInt(timeThreshold) < 1 ||
+      parseInt(timeThreshold) > 36)
+  ) {
+    // Check if time threshold is a number and between 1 and 36
+    return {
+      success: false,
+      message: "Invalid time threshold",
+    };
+  }
+
+  return {
+    success: true,
+    credentials,
+  };
+}
 
 // Get Instagram posts for multiple accounts in parallel
-// Query: usernames, concurrency, postLimit, timeThreshold
-// Returns: Object with posts from Instagram accounts
 exports.getMultipleInstagramPosts = async (req, res) => {
   console.log("GET /api/events/instagram-multiple ", req.query);
   try {
@@ -45,57 +121,127 @@ exports.getMultipleInstagramPosts = async (req, res) => {
   }
 };
 
+// Scrape Instagram posts for a single account (deprecated)
+exports.getInstagramPosts = async (req, res) => {
+  console.log("GET /api/events/instagram/:username ", req.params);
+  try {
+    const { username, concurrency, postLimit, timeThreshold } = req.query;
+
+    const validateResult = validateRequest(req);
+    if (!validateResult.success) {
+      return res.status(400).json(validateResult);
+    }
+
+    const scraper = new InstagramScraper(credentials);
+    const result = await scraper.scrapeProfile(username, {
+      timeThreshold: parseInt(timeThreshold),
+      postLimit: 10,
+    });
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: result.posts.length,
+      timeThreshold: parseInt(timeThreshold),
+      timeframe: `Posts from the last ${timeThreshold} hours`,
+      data: result.posts,
+    });
+  } catch (error) {
+    console.error("Error in Instagram scraper controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error scraping Instagram posts",
+    });
+  }
+};
+
 
 // MAYA API BELOW -------------------------------------------------------
 
 const Event = require("../models/Events");
 const User = require("../models/User");  // Import User model
 
-// Create Event
-exports.createEvent = async (req, res) => {
-  try {
-      const { name, date, time, location, caption, postedBy } = req.body;
-
-      // Check if postedBy is provided and valid
-      let user = null;
-      if (postedBy) {
-          user = await User.findById(postedBy);
-          if (!user) {
-              return res.status(400).json({ error: "Invalid User ID" });
-          }
-      }
-
-      // Create the new event
-      const newEvent = new Event({
-          name,
-          date,
-          time,
-          location,
-          caption,
-          postedBy: user ? user._id : null  // Store user if exists
-      });
-
-      await newEvent.save();
-
-      // If user exists, add the event ID to user's userEvents array
-      if (user) {
-          user.userEvents.push(newEvent._id);  // Store event in user's userEvents
-          await user.save();
-      }
-
-      res.status(201).json({ message: "Event created successfully", event: newEvent });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-};
-
-
 // Get All Events
 exports.getAllEvents = async (req, res) => {
     try {
-        const events = await Event.find().populate("postedBy", "username email");
-        res.status(200).json(events);
+        // Get the current user's ID from the JWT token
+        const userId = req.user.userId;
+
+        // Find all events that are either:
+        // 1. AI-sourced events (source: 'ai')
+        // 2. Custom events created by the current user (source: 'user' AND postedBy: userId)
+        const events = await Event.find({
+            $or: [
+                { source: 'ai' },
+                { source: 'user', postedBy: userId }
+            ]
+        }).populate("postedBy", "username email");
+        
+        // Format the response to match frontend expectations
+        const formattedEvents = events.map(event => ({
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy._id.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        }));
+
+        res.status(200).json(formattedEvents);
     } catch (error) {
+        console.error('Error in getAllEvents:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Create Event
+exports.createEvent = async (req, res) => {
+    try {
+        const { name, date, time, location, caption, source, baseEventId } = req.body;
+        
+        // Get the current user's ID from the JWT token
+        const userId = req.user.userId;
+        
+        // Verify the user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        // Create the new event
+        const newEvent = new Event({
+            name,
+            date,
+            time,
+            location,
+            caption,
+            postedBy: userId, // Always set postedBy to the current user's ID for custom events
+            source: source || 'user',
+            baseEventId: baseEventId || null
+        });
+
+        await newEvent.save();
+
+        // Add the event ID to user's userEvents array
+        user.userEvents.push(newEvent._id);
+        await user.save();
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...newEvent.toObject(),
+            _id: { $oid: newEvent._id.toString() },
+            postedBy: { $oid: userId.toString() },
+            baseEventId: baseEventId ? { $oid: baseEventId.toString() } : null,
+            createdAt: newEvent.createdAt ? { $date: newEvent.createdAt.toISOString() } : undefined,
+            updatedAt: newEvent.updatedAt ? { $date: newEvent.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(201).json({ message: "Event created successfully", event: formattedEvent });
+    } catch (error) {
+        console.error('Error in createEvent:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -105,7 +251,18 @@ exports.getEventById = async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: "Event not found" });
-        res.status(200).json(event);
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(200).json(formattedEvent);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -116,7 +273,18 @@ exports.updateEvent = async (req, res) => {
     try {
         const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!event) return res.status(404).json({ message: "Event not found" });
-        res.status(200).json({ message: "Event updated successfully", event });
+
+        // Format the response to match frontend expectations
+        const formattedEvent = {
+            ...event.toObject(),
+            _id: { $oid: event._id.toString() },
+            postedBy: event.postedBy ? { $oid: event.postedBy.toString() } : null,
+            baseEventId: event.baseEventId ? { $oid: event.baseEventId.toString() } : null,
+            createdAt: event.createdAt ? { $date: event.createdAt.toISOString() } : undefined,
+            updatedAt: event.updatedAt ? { $date: event.updatedAt.toISOString() } : undefined
+        };
+
+        res.status(200).json({ message: "Event updated successfully", event: formattedEvent });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -202,4 +370,3 @@ exports.createEventFromNLP = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-

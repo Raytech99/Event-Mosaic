@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
-const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
@@ -84,55 +83,49 @@ router.post(
 
 // Login Route
 router.post("/login", async (req, res) => {
+    console.log("Received login request body:", req.body);  // Add this line to log the incoming request
     const { emailOrUsername, password } = req.body;
 
     try {
+        console.log("Login attempt for:", emailOrUsername);
+        
         let user = await User.findOne({ 
             $or: [{ email: emailOrUsername }, { username: emailOrUsername }]
         });
 
         if (!user) {
+            console.log("No user found with email/username:", emailOrUsername);
             return res.status(400).json({ msg: "Invalid credentials" });
         }
         
-        //debugging comments 
-        //console.log("Stored Hashed Password in MongoDB:", user.password);
-        //console.log("Input Password Before Hashing:", password);
+        console.log("User found:", {
+            id: user._id,
+            email: user.email,
+            username: user.username
+        });
 
         const isMatch = await bcrypt.compare(password, user.password);
+        console.log("Password match:", isMatch);
 
-        if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+        if (!isMatch) {
+            console.log("Password mismatch for user:", emailOrUsername);
+            return res.status(400).json({ msg: "Invalid credentials" });
+        }
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        console.log("Login successful, token generated");
 
-        res.json({ token });
+        res.json({ 
+            token,
+            userId: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email
+        });
     } catch (err) {
         console.error("Server Error:", err);
         res.status(500).json({ msg: "Server error", error: err.message });
     }
-
-    let user = await User.findOne({ email });
-    if (!user || user.password !== password)
-      return res.status(400).json({ msg: "Invalid credentials" });
-
-    // Create and return JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ msg: "Server error", error: err });
-  }
 });
 
 

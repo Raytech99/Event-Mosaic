@@ -1,15 +1,16 @@
 const express = require("express");
 const router = express.Router();
+const auth = require("../middleware/auth");
 const {
+  getInstagramPosts,
   getMultipleInstagramPosts,
 } = require("../controllers/eventsController");
-const auth = require("../middleware/auth");
 
-// Protect all routes with authentication
-router.use(auth);
+// Route to get Instagram posts
+router.get("/instagram/:username", auth, getInstagramPosts);
 
 // Route to get Instagram posts for multiple accounts in parallel
-router.get("/instagram-multiple", getMultipleInstagramPosts);
+router.get("/instagram-multiple", auth, getMultipleInstagramPosts);
 
 //MAYA API BELOW -----------------
 
@@ -22,10 +23,10 @@ const {
 } = require("../controllers/eventsController");
 
 // Event CRUD Routes
-router.post("/", createEvent); // Create event
-router.get("/", getAllEvents); // Get all events
-router.get("/:id", getEventById); // Get event by ID
-router.put("/:id", updateEvent); // Update event
-router.delete("/:id", deleteEvent); // Delete event
+router.post("/", auth, createEvent); // Create event
+router.get("/", auth, getAllEvents); // Get all events
+router.get("/:id", auth, getEventById); // Get event by ID
+router.put("/:id", auth, updateEvent); // Update event
+router.delete("/:id", auth, deleteEvent); // Delete event
 
 module.exports = router;
