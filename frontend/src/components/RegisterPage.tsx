@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../App.css';
+import { buildPath, API_ROUTES } from '../utils/api';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ const RegisterPage = () => {
 
     try {
       console.log('Attempting registration with:', { ...formData, password: '***' });
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(buildPath(API_ROUTES.REGISTER), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
