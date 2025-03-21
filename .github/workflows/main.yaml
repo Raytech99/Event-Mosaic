@@ -34,30 +34,30 @@ jobs:
         working-directory: ./backend
         run: npm install
 
-      # Deploy using SSH key
+      # Install sshpass so we can use password-based SSH authentication.
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      # Deploy using password-based authentication with sshpass.
       - name: Deploy to DigitalOcean
         env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KEY: ${{ secrets.SSH_KEY }} # This is your droplet's SSH password.
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         run: |
-          # Setup SSH
-          echo "$SSH_KEY" > deploy_key
-          chmod 600 deploy_key
-
           # Deploy frontend
           echo "Deploying frontend..."
-          ssh -i deploy_key -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST 'rm -rf /var/www/html/*'
-          scp -i deploy_key -r frontend/dist/* $SSH_USERNAME@$SSH_HOST:/var/www/html/
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} 'rm -rf /var/www/html/*'
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no -r frontend/dist/* ${SSH_USERNAME}@${SSH_HOST}:/var/www/html/
 
           # Deploy backend
           echo "Deploying backend..."
-          ssh -i deploy_key -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST 'mkdir -p /var/emServer/src'
-          scp -i deploy_key -r backend/src/* $SSH_USERNAME@$SSH_HOST:/var/emServer/src/
-          scp -i deploy_key backend/package*.json $SSH_USERNAME@$SSH_HOST:/var/emServer/
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} 'mkdir -p /var/emServer/src'
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no -r backend/src/* ${SSH_USERNAME}@${SSH_HOST}:/var/emServer/src/
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no backend/package*.json ${SSH_USERNAME}@${SSH_HOST}:/var/emServer/
 
-          # Install dependencies and restart backend
-          ssh -i deploy_key -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST '
+          # Install dependencies and restart backend using PM2.
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} '
             cd /var/emServer && \
             npm install && \
             pm2 restart express-server || pm2 start src/server.js --name "express-server" && \
