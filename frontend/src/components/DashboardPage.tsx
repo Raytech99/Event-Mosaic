@@ -33,7 +33,6 @@ interface User {
   lastName: string;
   email: string;
   followedAccounts?: Array<{ $oid: string }>;
-  userEvents?: Array<{ $oid: string }>;
 }
 
 const DashboardPage: React.FC = () => {

@@ -62,10 +62,9 @@ router.post(
                 firstName,
                 lastName,
                 username,
-                email, 
-                password, // Password hashing is handled in the User model
-                followedAccounts: followedAccountIds, // Store valid accounts
-                userEvents: [] //empty array
+                email,
+                password,
+                followedAccounts: [] //empty array
             });
 
             await user.save();
