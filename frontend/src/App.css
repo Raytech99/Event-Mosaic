@@ -808,3 +808,142 @@ input[type="email"]:focus {
   margin-bottom: 1rem;
   font-size: 1.1rem;
 }
+
+/* Calendar Styles */
+.calendar-container {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.calendar-wrapper {
+  flex: 2;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selected-date-events {
+  flex: 1;
+  min-width: 300px;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selected-date-events h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+/* FullCalendar Overrides */
+.fc {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.fc .fc-button-primary {
+  background-color: #4a90e2;
+  border-color: #357abd;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: #357abd;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(74, 144, 226, 0.1);
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.fc .fc-event {
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-radius: 4px;
+}
+
+.fc .fc-event:hover {
+  filter: brightness(0.9);
+}
+
+/* Event Card in Selected Date View */
+.selected-date-events .event-card {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid;
+}
+
+.selected-date-events .event-card[data-source='ai'] {
+  border-left-color: #4a90e2;
+}
+
+.selected-date-events .event-card[data-source='user'] {
+  border-left-color: #2ecc71;
+}
+
+.selected-date-events .event-card h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.selected-date-events .event-card p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.selected-date-events .source-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.selected-date-events .source-badge[data-source='ai'] {
+  background-color: rgba(74, 144, 226, 0.1);
+  color: #4a90e2;
+}
+
+.selected-date-events .source-badge[data-source='user'] {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: #2ecc71;
+}
+
+/* View Toggle Buttons */
+.view-toggle {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.toggle-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: #4a90e2;
+  color: white;
+  border-color: #357abd;
+}
+
+.toggle-btn:hover {
+  background: #f8f9fa;
+}
+
+.toggle-btn.active:hover {
+  background: #357abd;
+}

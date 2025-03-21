@@ -59,6 +59,8 @@ const DashboardPage: React.FC = () => {
     postedBy: { $oid: '' },
     source: 'user'
   });
+  const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>('');
 
   useEffect(() => {
     // Get user data from localStorage
@@ -88,18 +90,11 @@ const DashboardPage: React.FC = () => {
   const fetchEvents = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token);
-      
       if (!token) {
-        console.error('No token found');
-        window.location.href = '/login';
-        return;
+        throw new Error('No authentication token found');
       }
 
-      const url = buildPath(API_ROUTES.EVENTS);
-      console.log('Fetching events from:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(buildPath(API_ROUTES.EVENTS), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -107,39 +102,35 @@ const DashboardPage: React.FC = () => {
         }
       });
 
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to fetch events');
       }
 
       const eventsData = await response.json();
-      console.log('Raw events data:', eventsData);
-      
       if (!Array.isArray(eventsData)) {
-        console.error('Events data is not an array:', eventsData);
         throw new Error('Invalid events data format');
       }
       
-      // Format the events to match our Event interface
       const formattedEvents = eventsData.map((event: any) => ({
         ...event,
-        _id: event._id?.$oid ? { $oid: event._id.$oid } : { $oid: event._id },
-        postedBy: event.postedBy ? (event.postedBy.$oid ? { $oid: event.postedBy.$oid } : { $oid: event.postedBy }) : null,
+        _id: { $oid: event._id?.$oid || event._id },
+        postedBy: event.postedBy ? { $oid: event.postedBy.$oid || event.postedBy } : null,
         source: event.source || 'user',
-        baseEventId: event.baseEventId?.$oid || event.baseEventId || undefined,
-        createdAt: event.createdAt?.$date ? { $date: event.createdAt.$date } : event.createdAt ? { $date: event.createdAt } : undefined,
-        updatedAt: event.updatedAt?.$date ? { $date: event.updatedAt.$date } : event.updatedAt ? { $date: event.updatedAt } : undefined
+        baseEventId: event.baseEventId?.$oid || event.baseEventId || null,
+        createdAt: event.createdAt ? { $date: event.createdAt.$date || event.createdAt } : null,
+        updatedAt: event.updatedAt ? { $date: event.updatedAt.$date || event.updatedAt } : null
       }));
       
-      console.log('Formatted events:', formattedEvents);
       setEvents(formattedEvents);
-      setIsLoading(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching events:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load events');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load events';
+      setError(errorMessage);
+      if (errorMessage === 'No authentication token found') {
+        window.location.href = '/login';
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -151,26 +142,21 @@ const DashboardPage: React.FC = () => {
       const userData = localStorage.getItem('user');
       
       if (!token || !userData) {
-        window.location.href = '/login';
-        return;
+        throw new Error('No authentication token found');
       }
 
       const currentUser = JSON.parse(userData);
-      
-      // Create a copy of the event data with properly formatted postedBy
       const eventData = {
         ...newEvent,
-        postedBy: currentUser._id, // Always set the current user's ID for custom events
+        postedBy: currentUser._id,
         source: 'user'
       };
-
-      console.log('Creating event with data:', eventData);
 
       const response = await fetch(buildPath(API_ROUTES.EVENTS), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(eventData)
       });
@@ -180,18 +166,15 @@ const DashboardPage: React.FC = () => {
         throw new Error(errorData.error || 'Failed to create event');
       }
 
-      const createdEvent = await response.json();
-      console.log('Created event response:', createdEvent);
-      
-      // Convert the returned event to match our Event interface
+      const { event: createdEvent } = await response.json();
       const formattedEvent: Event = {
-        ...createdEvent.event,
-        _id: { $oid: createdEvent.event._id },
+        ...createdEvent,
+        _id: { $oid: createdEvent._id },
         postedBy: { $oid: currentUser._id },
         source: 'user'
       };
       
-      setEvents([...events, formattedEvent]);
+      setEvents(prevEvents => [...prevEvents, formattedEvent]);
       setShowCreateEvent(false);
       setNewEvent({
         name: '',
@@ -199,26 +182,26 @@ const DashboardPage: React.FC = () => {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }).split('/').join('/'),
+        }),
         time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
         location: '',
         caption: '',
         postedBy: { $oid: currentUser._id },
         source: 'user'
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating event:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      setError(errorMessage);
+      if (errorMessage === 'No authentication token found') {
+        window.location.href = '/login';
+      }
     }
   };
 
   const handleEditEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Editing event:', editingEvent);
-    console.log('Event ID:', editingEvent?._id);
-    console.log('Event ID $oid:', editingEvent?._id?.$oid);
-    
-    if (!editingEvent?._id?.$oid) {
+    if (!editingEvent?._id?.['$oid']) {
       setError('Invalid event ID');
       return;
     }
@@ -226,11 +209,9 @@ const DashboardPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/login';
-        return;
+        throw new Error('No authentication token found');
       }
 
-      // Create a copy of the event data with properly formatted fields
       const eventData = {
         name: editingEvent.name,
         date: editingEvent.date,
@@ -238,77 +219,85 @@ const DashboardPage: React.FC = () => {
         location: editingEvent.location,
         caption: editingEvent.caption,
         postedBy: editingEvent.postedBy?.['$oid'],
-        source: editingEvent.source === 'ai' ? 'user' : 'user', // If editing an AI event, create a user override
-        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId // Set baseEventId if it's an AI event
+        source: 'user',
+        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId
       };
 
-      console.log('Sending event data:', eventData);
-
-      // If this is an AI event, create a new user event instead of updating
       const method = editingEvent.source === 'ai' ? 'POST' : 'PUT';
       const url = editingEvent.source === 'ai' 
         ? buildPath(API_ROUTES.EVENTS)
         : buildPath(API_ROUTES.EVENT(editingEvent._id.$oid));
 
-      console.log('Request URL:', url);
-      console.log('Request method:', method);
-
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(eventData)
       });
 
-      console.log('Response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to update event');
       }
 
       const responseData = await response.json();
-      console.log('Response data:', responseData);
-
-      // Handle both the POST (AI event) and PUT (custom event) responses
       const updatedEventData = responseData.event || responseData;
       
-      // Convert the returned event to match our Event interface
       const formattedEvent: Event = {
         ...updatedEventData,
         _id: { $oid: updatedEventData._id },
         postedBy: updatedEventData.postedBy ? { $oid: updatedEventData.postedBy } : null,
-        source: updatedEventData.source || 'user',
+        source: 'user',
         baseEventId: updatedEventData.baseEventId || null,
         createdAt: updatedEventData.createdAt ? { $date: updatedEventData.createdAt } : null,
         updatedAt: updatedEventData.updatedAt ? { $date: updatedEventData.updatedAt } : null
       };
 
-      console.log('Formatted event:', formattedEvent);
-
-      if (editingEvent.source === 'ai') {
-        // If we created a new user event from an AI event, add it to the list
-        setEvents([...events, formattedEvent]);
-      } else {
-        // If we updated an existing user event, update it in the list
-        const eventIdToUpdate = editingEvent._id?.$oid;
-        if (!eventIdToUpdate) {
-          console.error('Missing event ID for update');
-          return;
+      setEvents(prevEvents => {
+        if (editingEvent.source === 'ai') {
+          return [...prevEvents, formattedEvent];
+        } else {
+          return prevEvents.map(event => 
+            event._id?.$oid === editingEvent._id?.$oid ? formattedEvent : event
+          );
         }
-        setEvents(events.map(event => 
-          event._id?.$oid === eventIdToUpdate ? formattedEvent : event
-        ));
+      });
+
+      // Update selected events if the edited event was in the current selection
+      if (selectedEvents.some(e => e._id?.$oid === editingEvent._id?.$oid)) {
+        const newDate = new Date(formattedEvent.date);
+        const dateStr = newDate.toLocaleDateString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric'
+        });
+        
+        setSelectedEvents(prevSelected => {
+          const updatedSelected = prevSelected.map(event => 
+            event._id?.$oid === editingEvent._id?.$oid ? formattedEvent : event
+          );
+          return updatedSelected.filter(event => event.date === dateStr);
+        });
+        
+        setSelectedDate(newDate);
+        setSelectedDateStr(newDate.toLocaleDateString('en-US', { 
+          month: 'long', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }));
       }
       
       setShowEditEvent(false);
       setEditingEvent(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating event:', error);
-      setError(error instanceof Error ? error.message : 'Failed to update event');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update event';
+      setError(errorMessage);
+      if (errorMessage === 'No authentication token found') {
+        window.location.href = '/login';
+      }
     }
   };
 
@@ -344,34 +333,46 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Get events for the selected date
-  const selectedDateEvents = events.filter((event) => {
-    const eventDate = new Date(event.date);
-    return (
-      eventDate.getDate() === selectedDate.getDate() &&
-      eventDate.getMonth() === selectedDate.getMonth() &&
-      eventDate.getFullYear() === selectedDate.getFullYear()
-    );
-  });
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     window.location.href = '/login';
   };
 
-  const handleDateSelect = (selectInfo: any) => {
-    setSelectedDate(selectInfo.start);
-    setShowCreateEvent(true);
-    setNewEvent({
-      ...newEvent,
-      date: selectInfo.start.toISOString().split('T')[0]
+  const handleDateClick = (arg: any) => {
+    const clickedDate = new Date(arg.date);
+    const dateStr = clickedDate.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
     });
+    
+    // Find events for the clicked date
+    const eventsOnDate = events.filter(event => {
+      const eventDateStr = event.date;
+      return eventDateStr === dateStr;
+    });
+
+    setSelectedDate(clickedDate);
+    setSelectedDateStr(clickedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
+    setSelectedEvents(eventsOnDate);
   };
 
   const handleEventClick = (clickInfo: any) => {
     const event = events.find(e => e._id?.$oid === clickInfo.event.id);
     if (event) {
-      setSelectedDate(new Date(event.date));
+      const eventDate = new Date(event.date);
+      const dateStr = eventDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+      
+      // Find all events for this date
+      const eventsOnDate = events.filter(e => e.date === dateStr);
+      
+      setSelectedDate(eventDate);
+      setSelectedDateStr(eventDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }));
+      setSelectedEvents(eventsOnDate);
     }
   };
 
@@ -381,13 +382,73 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputDate = e.target.value; // This will be in YYYY-MM-DD format
-    const formattedDate = new Date(inputDate).toLocaleDateString('en-US', {
+    const inputDate = e.target.value; // YYYY-MM-DD format
+    // Create date object in local timezone
+    const date = new Date(inputDate + 'T00:00:00');
+    const formattedDate = date.toLocaleDateString('en-US', {
       month: '2-digit',
       day: '2-digit',
       year: 'numeric'
     });
-    setNewEvent({ ...newEvent, date: formattedDate });
+    
+    if (editingEvent) {
+      setEditingEvent({ ...editingEvent, date: formattedDate });
+    } else {
+      setNewEvent({ ...newEvent, date: formattedDate });
+    }
+  };
+
+  // Convert events to FullCalendar format
+  const calendarEvents = events.map(event => {
+    // Parse the date parts
+    const [month, day, year] = event.date.split('/');
+    const [hours, minutes] = event.time.split(':');
+    
+    // Create date object in local timezone
+    const eventDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Months are 0-based
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes)
+    );
+
+    return {
+      id: event._id?.$oid,
+      title: event.name,
+      start: eventDate,
+      extendedProps: event,
+      backgroundColor: event.source === 'ai' ? '#4a90e2' : '#2ecc71',
+      borderColor: event.source === 'ai' ? '#357abd' : '#27ae60'
+    };
+  });
+
+  // Add sorting function near the top of the component
+  const sortEvents = (events: Event[]) => {
+    return [...events].sort((a, b) => {
+      // Convert date strings to Date objects for comparison
+      const [monthA, dayA, yearA] = a.date.split('/');
+      const [hoursA, minutesA] = a.time.split(':');
+      const dateA = new Date(
+        parseInt(yearA),
+        parseInt(monthA) - 1,
+        parseInt(dayA),
+        parseInt(hoursA),
+        parseInt(minutesA)
+      );
+
+      const [monthB, dayB, yearB] = b.date.split('/');
+      const [hoursB, minutesB] = b.time.split(':');
+      const dateB = new Date(
+        parseInt(yearB),
+        parseInt(monthB) - 1,
+        parseInt(dayB),
+        parseInt(hoursB),
+        parseInt(minutesB)
+      );
+
+      return dateA.getTime() - dateB.getTime();
+    });
   };
 
   if (isLoading) {
@@ -479,7 +540,7 @@ const DashboardPage: React.FC = () => {
                 </button>
               </div>
             ) : (
-              events.map((event) => (
+              sortEvents(events).map((event) => (
                 <div key={event._id?.$oid} className="event-card">
                   <div className="event-date">
                     <span className="month">
@@ -534,39 +595,55 @@ const DashboardPage: React.FC = () => {
               <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
-                selectable={true}
-                select={handleDateSelect}
+                selectable={false}
+                dateClick={handleDateClick}
                 eventClick={handleEventClick}
-                events={events.map(event => ({
-                  id: event._id?.$oid,
-                  title: event.name,
-                  start: event.date,
-                  backgroundColor: '#4a90e2',
-                  borderColor: '#4a90e2',
-                  extendedProps: {
-                    caption: event.caption,
-                    location: event.location,
-                    time: event.time,
-                    postedBy: event.postedBy
-                  }
-                }))}
+                events={calendarEvents}
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: 'dayGridMonth,dayGridWeek'
+                }}
+                height="auto"
               />
             </div>
             <div className="selected-date-events">
               <h3>
-                Events for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                Events for {selectedDateStr || selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </h3>
-              {selectedDateEvents.length > 0 ? (
-                selectedDateEvents.map((event) => (
-                  <div key={event._id?.$oid} className="event-card">
+              {selectedEvents.length > 0 ? (
+                selectedEvents.map((event) => (
+                  <div key={event._id?.$oid} className="event-card" data-source={event.source}>
                     <div className="event-details">
                       <div className="event-header">
-                        <h3>{event.name}</h3>
+                        <h4>{event.name}</h4>
+                        <span className="source-badge" data-source={event.source}>
+                          {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                        </span>
                       </div>
                       <div className="event-info">
-                        <span>⏰ {event.time}</span>
-                        <span>📍 {event.location}</span>
-                        <span>{event.caption}</span>
+                        <p>⏰ {event.time}</p>
+                        <p>📍 {event.location}</p>
+                        {event.caption && <p>{event.caption}</p>}
+                      </div>
+                      <div className="event-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={() => {
+                            setEditingEvent(event);
+                            setShowEditEvent(true);
+                          }}
+                        >
+                          {event.source === 'ai' ? '✨ Customize' : '✏️ Edit'}
+                        </button>
+                        {event.source === 'user' && (
+                          <button
+                            className="delete-btn"
+                            onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -656,15 +733,7 @@ const DashboardPage: React.FC = () => {
               <input
                 type="date"
                 value={formatDateForInput(editingEvent.date)}
-                onChange={(e) => {
-                  const inputDate = e.target.value;
-                  const formattedDate = new Date(inputDate).toLocaleDateString('en-US', {
-                    month: '2-digit',
-                    day: '2-digit',
-                    year: 'numeric'
-                  });
-                  setEditingEvent({ ...editingEvent, date: formattedDate });
-                }}
+                onChange={handleDateChange}
                 required
               />
               <input

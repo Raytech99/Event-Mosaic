@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../App.css';
+import { buildPath, API_ROUTES } from '../utils/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const LoginPage = () => {
 
     try {
       console.log('Attempting login with:', { emailOrUsername });
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(buildPath(API_ROUTES.LOGIN), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,9 +58,7 @@ const LoginPage = () => {
     <div>
       <nav>
         <ul>
-          <li><Link to="/">Home</Link></li>
           <li><Link to="/about">About</Link></li>
-          <li><Link to="/login">Login</Link></li>
         </ul>
       </nav>
 
