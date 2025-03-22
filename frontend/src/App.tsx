@@ -1,8 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';  // Import the CSS file
-import LoginPage from './components/LoginPage';
-import RegisterPage from './components/RegisterPage';
+import AuthPage from './components/AuthPage';  // Import the new AuthPage
 import DashboardPage from './components/DashboardPage';
 
 const App: React.FC = () => {
@@ -14,7 +13,7 @@ const App: React.FC = () => {
   // Protected Route component
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!isAuthenticated()) {
-      return <Navigate to="/login" />;
+      return <Navigate to="/login" />;  // Redirect to login if not authenticated
     }
     return <>{children}</>;
   };
@@ -23,8 +22,8 @@ const App: React.FC = () => {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<AuthPage isLogin={true} />} />  {/* Login Route */}
+          <Route path="/register" element={<AuthPage isLogin={false} />} />  {/* Register Route */}
           <Route
             path="/dashboard"
             element={
@@ -33,7 +32,7 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="/" element={<Navigate to="/dashboard" />} />  {/* Default route */}
         </Routes>
       </div>
     </Router>
