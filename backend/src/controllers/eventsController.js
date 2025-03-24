@@ -200,7 +200,7 @@ exports.getAllEvents = async (req, res) => {
 // Create Event
 exports.createEvent = async (req, res) => {
     try {
-        const { name, date, time, location, caption, source, baseEventId } = req.body;
+        const { name, date, time, location, caption, source, baseEventId, handle } = req.body;
         
         // Get the current user's ID from the JWT token
         const userId = req.user.userId;
@@ -219,7 +219,8 @@ exports.createEvent = async (req, res) => {
             location,
             caption,
             postedBy: userId,
-            source: 'user'
+            source: 'user',
+            handle: handle || null
         });
 
         // Format the response to match frontend expectations
@@ -264,7 +265,12 @@ exports.getEventById = async (req, res) => {
 // Update Event
 exports.updateEvent = async (req, res) => {
     try {
-        const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { handle, ...updateData } = req.body;
+        const event = await Event.findByIdAndUpdate(
+            req.params.id, 
+            { ...updateData, handle: handle || null }, 
+            { new: true }
+        );
         if (!event) return res.status(404).json({ message: "Event not found" });
 
         // Format the response to match frontend expectations

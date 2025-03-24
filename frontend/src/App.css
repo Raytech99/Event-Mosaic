@@ -947,3 +947,21 @@ input[type="email"]:focus {
 .toggle-btn.active:hover {
   background: #357abd;
 }
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.handle-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}

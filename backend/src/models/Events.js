@@ -8,7 +8,8 @@ const EventSchema = new mongoose.Schema({
     caption: { type: String },
     postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
     source: { type: String, enum: ['ai', 'user'], default: 'user' },
-    baseEventId: { type: mongoose.Schema.Types.ObjectId, ref: "Event" }
+    baseEventId: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
+    handle: { type: String } // Club handle/name that posted the event
 }, { timestamps: true });
 
 module.exports = mongoose.model("Event", EventSchema, "events");
