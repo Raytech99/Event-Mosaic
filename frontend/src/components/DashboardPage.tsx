@@ -4,6 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
+import { checkAndClearToken } from '../utils/tokenUtils';
 
 interface Event {
   _id?: {
@@ -64,6 +65,12 @@ const DashboardPage: React.FC = () => {
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
 
   useEffect(() => {
+    // Check token expiration first
+    if (!checkAndClearToken()) {
+      window.location.href = '/login';
+      return;
+    }
+
     // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
