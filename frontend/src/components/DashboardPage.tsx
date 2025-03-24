@@ -25,6 +25,7 @@ interface Event {
   updatedAt?: {
     $date: string;
   } | null;
+  handle?: string;
 }
 
 interface User {
@@ -56,7 +57,8 @@ const DashboardPage: React.FC = () => {
     location: '',
     caption: '',
     postedBy: { $oid: '' },
-    source: 'user'
+    source: 'user',
+    handle: ''
   });
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
@@ -186,7 +188,8 @@ const DashboardPage: React.FC = () => {
         location: '',
         caption: '',
         postedBy: { $oid: currentUser._id },
-        source: 'user'
+        source: 'user',
+        handle: ''
       });
     } catch (error: unknown) {
       console.error('Error creating event:', error);
@@ -219,7 +222,8 @@ const DashboardPage: React.FC = () => {
         caption: editingEvent.caption,
         postedBy: editingEvent.postedBy?.['$oid'],
         source: 'user',
-        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId
+        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId,
+        handle: editingEvent.handle
       };
 
       const method = editingEvent.source === 'ai' ? 'POST' : 'PUT';
@@ -553,9 +557,16 @@ const DashboardPage: React.FC = () => {
                     <div className="event-header">
                       <div className="event-title">
                         <h3>{event.name}</h3>
-                        <span className={`source-badge ${event.source}`}>
-                          {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
-                        </span>
+                        <div className="event-meta">
+                          <span className={`source-badge ${event.source}`}>
+                            {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                          </span>
+                          {event.handle && (
+                            <span className="handle-badge">
+                              {event.handle}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="event-actions">
                         <button
@@ -616,9 +627,16 @@ const DashboardPage: React.FC = () => {
                     <div className="event-details">
                       <div className="event-header">
                         <h4>{event.name}</h4>
-                        <span className="source-badge" data-source={event.source}>
-                          {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
-                        </span>
+                        <div className="event-meta">
+                          <span className="source-badge" data-source={event.source}>
+                            {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                          </span>
+                          {event.handle && (
+                            <span className="handle-badge">
+                              {event.handle}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="event-info">
                         <p>⏰ {event.time}</p>
@@ -694,6 +712,12 @@ const DashboardPage: React.FC = () => {
                 onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                 required
               />
+              <input
+                type="text"
+                placeholder="Club Handle (optional)"
+                value={newEvent.handle || ''}
+                onChange={(e) => setNewEvent({ ...newEvent, handle: e.target.value })}
+              />
               <textarea
                 placeholder="Event Caption"
                 value={newEvent.caption}
@@ -747,6 +771,12 @@ const DashboardPage: React.FC = () => {
                 value={editingEvent.location}
                 onChange={(e) => setEditingEvent({ ...editingEvent, location: e.target.value })}
                 required
+              />
+              <input
+                type="text"
+                placeholder="Club Handle (optional)"
+                value={editingEvent.handle || ''}
+                onChange={(e) => setEditingEvent({ ...editingEvent, handle: e.target.value })}
               />
               <textarea
                 placeholder="Event Caption"
