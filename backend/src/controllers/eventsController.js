@@ -360,6 +360,9 @@ exports.createEventFromNLP = async (req, res) => {
             time: eventDetails.time,
             location: eventDetails.location,
             caption: rawEvent.caption,
+            postedBy: rawEvent.handle,
+            source: 'ai',
+            handle: rawEvent.handle
         });
 
         await newEvent.save();
