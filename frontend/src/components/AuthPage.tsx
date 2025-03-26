@@ -49,6 +49,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
 
@@ -57,7 +58,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
       if (response.ok) {
         if (!isRegistering) {
           localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('user', JSON.stringify({
+            id: data.userId,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email
+          }));
           navigate('/dashboard');
         } else {
           setMessage('Registration successful! Please login.');

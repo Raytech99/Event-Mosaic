@@ -82,8 +82,9 @@ const DashboardPage: React.FC = () => {
       return;
     }
     
+    // Only fetch events once when component mounts
     fetchEvents();
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   const fetchEvents = async () => {
     try {
@@ -110,6 +111,11 @@ const DashboardPage: React.FC = () => {
       console.log('Response status:', response.status);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          // Only redirect to login if unauthorized
+          window.location.href = '/login';
+          return;
+        }
         const errorData = await response.json();
         console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to fetch events');
@@ -141,6 +147,7 @@ const DashboardPage: React.FC = () => {
       console.error('Error fetching events:', error);
       setError(error instanceof Error ? error.message : 'Failed to load events');
       setIsLoading(false);
+      // Don't redirect to login on general errors
     }
   };
 
@@ -345,14 +352,16 @@ const DashboardPage: React.FC = () => {
   };
 
   // Get events for the selected date
-  const selectedDateEvents = events.filter((event) => {
-    const eventDate = new Date(event.date);
-    return (
-      eventDate.getDate() === selectedDate.getDate() &&
-      eventDate.getMonth() === selectedDate.getMonth() &&
-      eventDate.getFullYear() === selectedDate.getFullYear()
-    );
-  });
+  const selectedDateEvents = React.useMemo(() => {
+    return events.filter((event) => {
+      const eventDate = new Date(event.date);
+      return (
+        eventDate.getDate() === selectedDate.getDate() &&
+        eventDate.getMonth() === selectedDate.getMonth() &&
+        eventDate.getFullYear() === selectedDate.getFullYear()
+      );
+    });
+  }, [events, selectedDate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -400,8 +409,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
-      <header className="dashboard-header">
+      <header>
         <div className="header-content">
           <div className="logo-section">
             <img src="/images/logo.png" alt="Logo" className="logo" />
@@ -428,7 +436,7 @@ const DashboardPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="dashboard-main">
+      <main>
         <div className="dashboard-header-section">
           <div>
             <h1>Dashboard</h1>
