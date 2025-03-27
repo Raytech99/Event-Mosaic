@@ -7,10 +7,10 @@ const app = express();
 
 // Configure CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Vite's default port
+  origin: ['http://localhost:5173', 'http://eventmosaic.net'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 app.use(express.json());

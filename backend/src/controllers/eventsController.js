@@ -200,7 +200,7 @@ exports.getAllEvents = async (req, res) => {
 // Create Event
 exports.createEvent = async (req, res) => {
     try {
-        const { name, date, time, location, caption, source, baseEventId } = req.body;
+        const { name, date, time, location, caption, source, baseEventId, handle } = req.body;
         
         // Get the current user's ID from the JWT token
         const userId = req.user.userId;
@@ -212,22 +212,16 @@ exports.createEvent = async (req, res) => {
         }
 
         // Create the new event
-        const newEvent = new Event({
+        const newEvent = await Event.create({
             name,
             date,
             time,
             location,
             caption,
-            postedBy: userId, // Always set postedBy to the current user's ID for custom events
-            source: source || 'user',
-            baseEventId: baseEventId || null
+            postedBy: userId,
+            source: 'user',
+            handle: handle || null
         });
-
-        await newEvent.save();
-
-        // Add the event ID to user's userEvents array
-        user.userEvents.push(newEvent._id);
-        await user.save();
 
         // Format the response to match frontend expectations
         const formattedEvent = {
@@ -271,7 +265,12 @@ exports.getEventById = async (req, res) => {
 // Update Event
 exports.updateEvent = async (req, res) => {
     try {
-        const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { handle, ...updateData } = req.body;
+        const event = await Event.findByIdAndUpdate(
+            req.params.id, 
+            { ...updateData, handle: handle || null }, 
+            { new: true }
+        );
         if (!event) return res.status(404).json({ message: "Event not found" });
 
         // Format the response to match frontend expectations
@@ -361,6 +360,9 @@ exports.createEventFromNLP = async (req, res) => {
             time: eventDetails.time,
             location: eventDetails.location,
             caption: rawEvent.caption,
+            postedBy: rawEvent.handle,
+            source: 'ai',
+            handle: rawEvent.handle
         });
 
         await newEvent.save();

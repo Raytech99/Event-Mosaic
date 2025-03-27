@@ -1,0 +1,65 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "23.10.0"
+
+      # Frontend build
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      # Backend build
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm install
+
+      # Install sshpass so we can use password-based SSH authentication.
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      # Deploy using password-based authentication with sshpass.
+      - name: Deploy to DigitalOcean
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }} # This is your droplet's SSH password.
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+        run: |
+          # Deploy frontend
+          echo "Deploying frontend..."
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} 'rm -rf /var/www/html/*'
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no -r frontend/dist/* ${SSH_USERNAME}@${SSH_HOST}:/var/www/html/
+
+          # Deploy backend
+          echo "Deploying backend..."
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} 'mkdir -p /var/emServer/src'
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no -r backend/src/* ${SSH_USERNAME}@${SSH_HOST}:/var/emServer/src/
+          sshpass -p "${SSH_KEY}" scp -o StrictHostKeyChecking=no backend/package*.json ${SSH_USERNAME}@${SSH_HOST}:/var/emServer/
+
+          # Install dependencies and restart backend using PM2.
+          sshpass -p "${SSH_KEY}" ssh -o StrictHostKeyChecking=no ${SSH_USERNAME}@${SSH_HOST} '
+            cd /var/emServer && \
+            npm install && \
+            pm2 restart express-server || pm2 start src/server.js --name "express-server" && \
+            pm2 save
+          '

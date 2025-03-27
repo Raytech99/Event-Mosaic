@@ -16,6 +16,7 @@
     "@fullcalendar/react": "^6.1.15",
     "@types/react-calendar": "^3.9.0",
     "@types/react-router-dom": "^5.3.3",
+    "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-calendar": "^4.8.0",
     "react-dom": "^18.2.0",
