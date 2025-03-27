@@ -116,10 +116,13 @@ router.post("/login", async (req, res) => {
 
         res.json({ 
             token,
-            userId: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email
+            user: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                id: user._id
+            }
         });
     } catch (err) {
         console.error("Server Error:", err);
