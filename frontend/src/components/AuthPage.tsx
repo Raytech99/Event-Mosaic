@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../App.css';
+import { buildPath, API_ROUTES } from '../utils/api';
 
 interface AuthPageProps {
   isLogin: boolean;
@@ -40,8 +41,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
     setMessage('');
 
     try {
-      const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = buildPath(isRegistering ? API_ROUTES.REGISTER : API_ROUTES.LOGIN);
       const body = isRegistering ? formData : { emailOrUsername, password: formData.password };
+
+      console.log('Making request to:', endpoint);
+      console.log('With body:', body);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -53,7 +57,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
         body: JSON.stringify(body),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
         if (!isRegistering) {
@@ -75,12 +81,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             password: '',
             followedAccounts: []
           });
+          setIsRegistering(false); // Switch to login form after successful registration
         }
       } else {
         setMessage(data.msg || 'Error occurred. Please try again.');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error during auth:', error);
       setMessage('An error occurred. Please try again later.');
     } finally {
       setIsLoading(false);

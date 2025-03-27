@@ -1,16 +1,14 @@
-const APP_NAME = 'eventmosaic.net';
-//const API_PORT = '3000';
+// Base URL for API calls
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'http://eventmosaic.net'  // Production URL (using HTTP)
+  : 'http://localhost:3000';    // Development URL
 
-export function buildPath(route: string): string {
-    // Remove leading slash if present
-    const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-    
-    if (process.env.NODE_ENV === 'production') {
-        return `http://${APP_NAME}:3000/${cleanRoute}`;
-    } else {
-        return `http://localhost:3000/${cleanRoute}`;
-    }
-}
+// Function to build complete API URLs
+export const buildPath = (path: string): string => {
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return `${BASE_URL}/${cleanPath}`;
+};
 
 // Common API routes
 export const API_ROUTES = {
