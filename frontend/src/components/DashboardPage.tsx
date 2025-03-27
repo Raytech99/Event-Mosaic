@@ -481,10 +481,14 @@ const DashboardPage: React.FC = () => {
           <div className="user-section">
             <div className="user-profile">
               <div className="avatar">
-                {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName[0]}${user.lastName[0]}`
+                  : 'U'}
               </div>
               <span className="username">
-                {user ? `${user.firstName} ${user.lastName}` : 'User'}
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName} ${user.lastName}`
+                  : 'User'}
               </span>
             </div>
             <button className="logout-btn" onClick={handleLogout}>

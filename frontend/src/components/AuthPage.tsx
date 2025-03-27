@@ -63,13 +63,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
 
       if (response.ok) {
         if (!isRegistering) {
+          console.log('Login response data:', data); // Debug log
+          const userData = {
+            _id: data.user.id,
+            firstName: data.user.firstName,
+            lastName: data.user.lastName,
+            email: data.user.email,
+            username: data.user.username
+          };
+          console.log('Storing user data:', userData); // Debug log
           localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify({
-            id: data.userId,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email
-          }));
+          localStorage.setItem('user', JSON.stringify(userData));
           navigate('/dashboard');
         } else {
           setMessage('Registration successful! Please login.');
