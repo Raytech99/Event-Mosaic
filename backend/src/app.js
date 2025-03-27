@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to Instagram Scraper API" });
+  res.json({ message: "Welcome to Event Mosaic API" });
 });
 
 app.use((req, res, next) => {
