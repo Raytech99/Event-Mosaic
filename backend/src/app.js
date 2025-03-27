@@ -20,6 +20,11 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to Event Mosaic API" });
 });
 
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
+
 // Ensure correct route registration
 app.use("/api/events", eventsRoutes);
 app.use("/api/auth", authRoutes); 
