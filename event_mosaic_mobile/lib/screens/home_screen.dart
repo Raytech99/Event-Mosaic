@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           radius: 24,
                           backgroundColor: Theme.of(context).colorScheme.secondary,
                           child: Text(
-                            '${_user!['firstName'][0]}${_user!['lastName'][0]}',
+                            '${_user!['firstName']?.isNotEmpty == true ? _user!['firstName'][0] : ''}${_user!['lastName']?.isNotEmpty == true ? _user!['lastName'][0] : ''}',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
