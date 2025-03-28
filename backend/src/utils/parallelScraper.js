@@ -103,6 +103,8 @@ async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
     success: successCount > 0,
     total: usernames.length,
     successCount,
+    timeThreshold,
+    timeframe: `Posts from the last ${timeThreshold} hours`,
     totalRecentPosts,
     data: results,
   };
