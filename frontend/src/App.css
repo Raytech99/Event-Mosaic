@@ -765,3 +765,202 @@ main {
     padding: 20px;
   }
 }
+
+/* Landing Page Styles - Updated */
+.landing-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* Triangle Background Pattern */
+.triangle-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  opacity: 0.08;
+  pointer-events: none;
+  background: 
+    repeating-linear-gradient(
+      60deg,
+      #1a237e 0px,
+      transparent 3px,
+      transparent 15px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      #f9a825 0px,
+      transparent 3px,
+      transparent 15px
+    ),
+    repeating-linear-gradient(
+      120deg,
+      #7f0000 0px,
+      transparent 3px,
+      transparent 15px
+    );
+  background-size: 50px 50px;
+}
+
+/* Hero Content */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 1;
+  gap: 0.75rem;
+  max-width: 1200px;
+  transform: translateY(-11vh); /* Increased upward shift from -8vh to -15vh */
+}
+
+.hero-logo {
+  width: min(80vh, 450px);
+  height: min(80vh, 450px);
+  animation: logoFloat 4s ease-in-out infinite;
+  margin-bottom: -8rem;
+}
+
+.hero-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hero-title {
+  font-size: clamp(3.5rem, 7vw, 5rem);
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.title-word {
+  display: block;
+}
+
+.title-word.navy {
+  color: #1a237e;
+}
+
+.title-word.maroon {
+  color: #7f0000;
+}
+
+.title-word.gold {
+  color: #f9a825;
+}
+
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: #4a4a4a;
+  margin: 0.5rem 0 1rem;
+  line-height: 1.3;
+  max-width: 600px;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.cta-button {
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 1.125rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  text-align: center;
+}
+
+.cta-button.login {
+  background-color: #1a237e;
+  color: white;
+}
+
+.cta-button.login:hover {
+  background-color: #2a337e;
+  transform: translateY(-2px);
+}
+
+.cta-button.register {
+  background-color: #f9a825;
+  color: #1a237e;
+}
+
+.cta-button.register:hover {
+  background-color: #fbb943;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .hero-content {
+    transform: translateY(-9vh); /* Increased mobile shift from -6vh to -12vh */
+    gap: 0.5rem;
+  }
+
+  .hero-logo {
+    width: min(20vh, 200px);
+    height: min(20vh, 200px);
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    gap: 0.15rem;
+  }
+}
+
+/* Animation Classes */
+.animate-on-mount {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.animate-in {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Menu Button - Updated */
+.mobile-menu-btn {
+  display: block;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+  opacity: 0.8;
+}
+
+.mobile-menu-btn svg {
+  width: 28px;
+  height: 28px;
+}
