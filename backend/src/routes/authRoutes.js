@@ -67,9 +67,27 @@ router.post(
                 followedAccounts: [] //empty array
             });
 
-            await user.save();
+            const crypto = require("crypto");
+            const sendEmail = require("../utils/sendEmail");
 
-            res.status(201).json({ msg: "User registered successfully" });
+            const verificationToken = crypto.randomBytes(32).toString("hex");
+            user.emailVerificationToken = verificationToken;
+            await user.save();
+            
+            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${verificationToken}&email=${user.email}`;
+            
+            await sendEmail({
+              to: user.email,
+              subject: "Verify your email",
+              html: `
+                <p>Hi ${user.firstName},</p>
+                <p>Thanks for signing up for Event Mosaic!</p>
+                <p>Please <a href="${verifyLink}">click here to verify your email</a>.</p>
+              `,
+            });
+            
+            res.status(201).json({ msg: "Verification email sent. Please check your inbox." });
+
         } catch (err) {
             console.error("Registration Error:", err);
             res.status(500).json({ msg: "Server error", error: err.message });
@@ -111,6 +129,10 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ msg: "Invalid credentials" });
         }
 
+        if (!user.emailVerified) {
+            return res.status(401).json({ msg: "Please verify your email before logging in." });
+        }          
+
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
         console.log("Login successful, token generated");
 
@@ -133,7 +155,71 @@ router.post("/login", async (req, res) => {
 
 module.exports = router;
 
+//Verify Email
+router.get("/verify-email", async (req, res) => {
+    const { token, email } = req.query;
+  
+    const user = await User.findOne({ email, emailVerificationToken: token });
+    if (!user) return res.status(400).json({ msg: "Invalid or expired token." });
+  
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    await user.save();
+  
+    res.json({ msg: "Email verified successfully. You can now log in." });
+  });
+  
+  //Forgot Password
+  const crypto = require("crypto");
+  
+  router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
 
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ msg: "User not found" });
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = Date.now() + 3600000; // 1 hour
+
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = expires;
+  await user.save();
+
+  const resetLink = `http://142.93.178.54/api/auth/reset-password?token=${token}&email=${email}`;
+
+  await sendEmail({
+    to: email,
+    subject: "Reset Your Password",
+    html: `
+      <p>Click <a href="${resetLink}">here</a> to reset your password.</p>
+      <p>This link will expire in 1 hour.</p>
+    `
+  });
+
+  res.json({ msg: "Password reset email sent" });
+});
+
+//Reset Password
+router.post("/reset-password", async (req, res) => {
+    const { email, token, newPassword } = req.body;
+  
+    const user = await User.findOne({
+      email,
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() } // not expired
+    });
+  
+    if (!user) return res.status(400).json({ msg: "Invalid or expired token" });
+  
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+  
+    res.json({ msg: "Password updated successfully" });
+  });
+
+  
 
 
 
