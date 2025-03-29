@@ -10,7 +10,7 @@ async function runScraper() {
   try {
     // Get all Instagram accounts
     const accounts = await InstaAccount.find({});
-    console.log("\nAccounts found: ", accounts.length);
+    // console.log("\nAccounts found: ", accounts.length);
     console.log(" Accounts: ", JSON.stringify(accounts, null, 2));
 
     if (accounts.length === 0) {
@@ -37,7 +37,7 @@ async function runScraper() {
     // Run the scraper
     const options = {
       concurrencyLimit: 3,
-      timeThreshold: 100,
+      timeThreshold: 24,
       postLimit: 10,
     };
 
@@ -93,12 +93,12 @@ async function runScraper() {
 
           // Create new Event document with N/A defaults
           const newEvent = new Event({
-            name: "N/A", 
+            name: "N/A",
             date: eventDate,
             time: eventTime,
-            location: "N/A", 
+            location: "N/A",
             caption: post.caption,
-            source: "ai", 
+            source: "ai",
             handle: result.username,
           });
 
