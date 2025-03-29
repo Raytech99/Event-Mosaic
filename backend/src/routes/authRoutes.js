@@ -82,7 +82,7 @@ router.post(
             await user.save();
             console.log("📄 Saving user to DB...");
             
-            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${token}&email=${user.email}`;
+            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${verificationToken}&email=${user.email}`;
             
             await sendEmail({
               to: user.email,
