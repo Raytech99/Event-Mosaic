@@ -10,8 +10,8 @@ async function testScheduler() {
     await connectDB();
     console.log("Starting scheduler test...");
     const result = await runScraper();
-    console.log("Test results:");
-    console.log(`\nResult: ${result}`);
+    console.log("\n\nTest results:");
+    console.log(`Result: ${JSON.stringify(result, null, 2)}`);
     console.log(`Success: ${result.success}`);
     console.log(`Events created: ${result.eventsCreated || 0}`);
   } catch (error) {
