@@ -8,7 +8,11 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     followedAccounts: [{ type: mongoose.Schema.Types.ObjectId, ref: "instaAccounts" }], 
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
 });
 
 // Hash password before saving
