@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
+const sendEmail = require("../utils/sendEmail");
+
 
 const router = express.Router();
 
@@ -20,11 +22,12 @@ router.post(
         body("followedAccounts").isArray().withMessage("Followed accounts must be an array"),
     ],
     async (req, res) => {
+        console.log("✅ Entered /register route. Body:", req.body);
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-
+     
         const { firstName, lastName, username, email, password, followedAccounts } = req.body;
 
         const followedHandles = followedAccounts || [];
@@ -32,18 +35,22 @@ router.post(
 
         for (const handle of followedHandles) {
             console.log("🔍 Searching for handle:", handle);
-
+          
             const account = await instaAccounts.findOne({ handle });
             if (account) {
-                console.log("Account found:", account._id);
-                followedAccountIds.push(account._id);
+              console.log("✅ Found account:", account._id);
+              followedAccountIds.push(account._id);
             } else {
-                console.log("Account not found:", handle);
-                return res.status(400).json({ msg: `Account ${handle} not found` });
+              console.log("❌ Account not found:", handle);
+              return res.status(400).json({ msg: `Account ${handle} not found` });
             }
-        }
+          }          
+        
+        console.log("📦 Request received, checking followed accounts...");
 
         try {
+            console.log("📥 Registering new user...");
+
             let existingUser = await User.findOne({ email });
             let existingUsername = await User.findOne({ username });
 
@@ -73,8 +80,9 @@ router.post(
             const verificationToken = crypto.randomBytes(32).toString("hex");
             user.emailVerificationToken = verificationToken;
             await user.save();
+            console.log("📄 Saving user to DB...");
             
-            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${verificationToken}&email=${user.email}`;
+            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${token}&email=${user.email}`;
             
             await sendEmail({
               to: user.email,
@@ -85,6 +93,8 @@ router.post(
                 <p>Please <a href="${verifyLink}">click here to verify your email</a>.</p>
               `,
             });
+            console.log("✅ Verification email sent to", user.email);
+
             
             res.status(201).json({ msg: "Verification email sent. Please check your inbox." });
 
