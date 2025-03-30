@@ -85,18 +85,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             followedAccounts: []
           });
           setIsRegistering(false);
+          setIsLoading(false);
         }
       } else {
         setMessage(data.msg || 'Error occurred. Please try again.');
+        setIsLoading(false); // Clear loading state on error
       }
     } catch (error) {
       console.error('Error during auth:', error);
       setMessage('An error occurred. Please try again later.');
-    } finally {
-      // Only set loading to false if we're not redirecting
-      if (isRegistering) {
-        setIsLoading(false);
-      }
+      setIsLoading(false); // Clear loading state on error
     }
   };
 
