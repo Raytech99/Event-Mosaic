@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
 
@@ -8,7 +8,6 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -71,10 +70,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             email: data.user.email,
             username: data.user.username
           };
-          console.log('Storing user data:', userData); // Debug log
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(userData));
-          navigate('/dashboard');
+          // Force navigation to dashboard
+          window.location.href = '/dashboard';
         } else {
           setMessage('Registration successful! Please login.');
           setFormData({
