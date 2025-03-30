@@ -10,6 +10,8 @@ async function runScraper() {
   try {
     // Get all Instagram accounts
     const accounts = await InstaAccount.find({});
+    // console.log("\nAccounts found: ", accounts.length);
+    console.log(" Accounts: ", JSON.stringify(accounts, null, 2));
 
     if (accounts.length === 0) {
       console.log("No Instagram accounts to scrape");
@@ -34,7 +36,7 @@ async function runScraper() {
 
     // Run the scraper
     const options = {
-      concurrencyLimit: 2,
+      concurrencyLimit: 3,
       timeThreshold: 24,
       postLimit: 10,
     };
@@ -45,6 +47,8 @@ async function runScraper() {
       credentials,
       options
     );
+
+    console.log("Scraping results: ", JSON.stringify(results, null, 2));
 
     let totalEventsCreated = 0;
 
@@ -81,31 +85,11 @@ async function runScraper() {
             continue;
           }
 
-          // TODO: Integrate AI model here to extract event details from caption
-
-          // Extract post date and format for event
-          const eventDate = formatDate(post.date);
-          const eventTime = formatTime(post.date);
-
-          // Create new Event document with N/A defaults
-          const newEvent = new Event({
-            name: "N/A", // Default name as requested
-            date: eventDate,
-            time: eventTime,
-            location: "N/A", // Default location as requested
-            caption: post.caption,
-            source: "ai", // AI-created event
-            handle: result.username,
-          });
-
-          // Save the new event
-          await newEvent.save();
-          console.log(
-            `Created new event for ${result.username} with default values`
-          );
+          // Integrates AI model here to extract event details from caption
+          const eventResponse = await createEventFromNLP(post.caption, result.username);
 
           // Add the new event ID to our list
-          newEventIds.push(newEvent._id);
+          newEventIds.push(eventResponse.event._id);
           totalEventsCreated++;
         }
 
@@ -154,3 +138,75 @@ function initScheduler() {
 }
 
 module.exports = { initScheduler, runScraper };
+
+
+
+
+// Natural Language Processing
+
+// Key available in the discord
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+
+// ChatGPT Request to extract event details from post caption.
+async function extractEventDetails(text) {
+  try {
+    const response = await axios.post(
+      OPENAI_API_URL,
+      {
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extract event details as a structured JSON object with fields: name, date, time, location, caption. If no future event is found, return null. If any of the fields are not found, leave them blank, do not make up any information.",
+          },
+          { role: "user", content: text },
+        ],
+        temperature: 0,
+        max_tokens: 200,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return JSON.parse(response.data.choices[0].message.content);
+  } catch (error) {
+    console.error(
+      "Error extracting event details:",
+      error.response ? error.response.data : error.message
+    );
+    return null;
+  }
+}
+
+// Create Event from NLP
+exports.createEventFromNLP = async (caption, handle) => {
+  try {
+
+    const eventDetails = await extractEventDetails(caption);
+    
+    // Create the new structured event
+    const newEvent = new Event({
+      name: eventDetails.name || "Untitled Event", // Ensures if there's no event name it still sets one
+      date: eventDetails.date,
+      time: eventDetails.time,
+      location: eventDetails.location,
+      caption: rawEvent.caption,
+      postedBy: handle,
+      source: "ai",
+      handle: handle,
+    });
+
+    await newEvent.save();
+
+    return { message: "Event created successfully", event: newEvent }; 
+  } catch (error) {
+    console.error("Error creating event from NLP:", error);
+    return { error: error.message }; 
+  }
+};

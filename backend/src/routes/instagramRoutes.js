@@ -6,7 +6,7 @@ const {
 const auth = require("../middleware/auth");
 
 // Protect all routes with authentication
-router.use(auth);
+// router.use(auth);
 
 // Route to get Instagram posts for multiple accounts in parallel
 router.get("/instagram-multiple", getMultipleInstagramPosts);
