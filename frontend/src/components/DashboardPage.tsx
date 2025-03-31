@@ -221,22 +221,35 @@ const DashboardPage: React.FC = () => {
         throw new Error('No authentication token found');
       }
 
+      // Extract the actual ID string from the $oid object
+      const eventId = editingEvent._id.$oid;
+      
+      // Helper function to safely extract ObjectId
+      const extractObjectId = (obj: any): string | null => {
+        if (obj && typeof obj === 'object' && '$oid' in obj) {
+          return obj.$oid;
+        }
+        return obj;
+      };
+
       const eventData = {
         name: editingEvent.name,
         date: editingEvent.date,
         time: editingEvent.time,
         location: editingEvent.location,
         caption: editingEvent.caption,
-        postedBy: editingEvent.postedBy?.['$oid'],
+        postedBy: extractObjectId(editingEvent.postedBy),
         source: 'user',
-        baseEventId: editingEvent.source === 'ai' ? editingEvent._id.$oid : editingEvent.baseEventId,
+        baseEventId: editingEvent.source === 'ai' 
+          ? eventId 
+          : extractObjectId(editingEvent.baseEventId),
         handle: editingEvent.handle
       };
 
       const method = editingEvent.source === 'ai' ? 'POST' : 'PUT';
       const url = editingEvent.source === 'ai' 
         ? buildPath(API_ROUTES.EVENTS)
-        : buildPath(API_ROUTES.EVENT(editingEvent._id.$oid));
+        : buildPath(API_ROUTES.EVENT(eventId));
 
       const response = await fetch(url, {
         method,
@@ -257,10 +270,10 @@ const DashboardPage: React.FC = () => {
       
       const formattedEvent: Event = {
         ...updatedEventData,
-        _id: { $oid: updatedEventData._id },
-        postedBy: updatedEventData.postedBy ? { $oid: updatedEventData.postedBy } : null,
+        _id: { $oid: extractObjectId(updatedEventData._id) || updatedEventData._id },
+        postedBy: updatedEventData.postedBy ? { $oid: extractObjectId(updatedEventData.postedBy) } : null,
         source: 'user',
-        baseEventId: updatedEventData.baseEventId || null,
+        baseEventId: extractObjectId(updatedEventData.baseEventId),
         createdAt: updatedEventData.createdAt ? { $date: updatedEventData.createdAt } : null,
         updatedAt: updatedEventData.updatedAt ? { $date: updatedEventData.updatedAt } : null
       };
@@ -387,24 +400,39 @@ const DashboardPage: React.FC = () => {
   };
 
   const formatDateForInput = (dateString: string) => {
-    const [month, day, year] = dateString.split('/');
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    try {
+      if (!dateString) return '';
+      
+      const [month, day, year] = dateString.split('/');
+      if (!month || !day || !year) return '';
+      
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputDate = e.target.value; // YYYY-MM-DD format
-    // Create date object in local timezone
-    const date = new Date(inputDate + 'T00:00:00');
-    const formattedDate = date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
-    });
-    
-    if (editingEvent) {
-      setEditingEvent({ ...editingEvent, date: formattedDate });
-    } else {
-      setNewEvent({ ...newEvent, date: formattedDate });
+    if (!inputDate) return;
+
+    try {
+      // Create date object in local timezone
+      const date = new Date(inputDate + 'T00:00:00');
+      const formattedDate = date.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+      
+      if (editingEvent) {
+        setEditingEvent({ ...editingEvent, date: formattedDate });
+      } else {
+        setNewEvent({ ...newEvent, date: formattedDate });
+      }
+    } catch (error) {
+      console.error('Error handling date change:', error);
     }
   };
 
