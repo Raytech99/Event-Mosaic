@@ -36,15 +36,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent multiple submissions
+    
     setIsLoading(true);
     setMessage('');
 
     try {
       const endpoint = buildPath(isRegistering ? API_ROUTES.REGISTER : API_ROUTES.LOGIN);
       const body = isRegistering ? formData : { emailOrUsername, password: formData.password };
-
-      console.log('Making request to:', endpoint);
-      console.log('With body:', body);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -56,13 +55,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
         body: JSON.stringify(body),
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (response.ok) {
         if (!isRegistering) {
-          console.log('Login response data:', data); // Debug log
+          // Store user data first
           const userData = {
             _id: data.user.id,
             firstName: data.user.firstName,
@@ -70,10 +67,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             email: data.user.email,
             username: data.user.username
           };
-          localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(userData));
-          // Force navigation to dashboard
-          window.location.href = '/dashboard';
+          localStorage.setItem('token', data.token);
+          
+          // Use a small timeout to ensure storage is complete
+          setTimeout(() => {
+            window.location.replace('/dashboard');
+          }, 100);
         } else {
           setMessage('Registration successful! Please login.');
           setFormData({
@@ -84,16 +84,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             password: '',
             followedAccounts: []
           });
-          setIsRegistering(false); // Switch to login form after successful registration
+          setIsRegistering(false);
+          setIsLoading(false);
         }
       } else {
         setMessage(data.msg || 'Error occurred. Please try again.');
+        setIsLoading(false); // Clear loading state on error
       }
     } catch (error) {
       console.error('Error during auth:', error);
       setMessage('An error occurred. Please try again later.');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Clear loading state on error
     }
   };
 
