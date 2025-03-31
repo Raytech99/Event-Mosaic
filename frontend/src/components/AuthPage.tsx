@@ -34,9 +34,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
     }));
   };
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Prevent multiple submissions
+    
     
     setIsLoading(true);
     setMessage('');
@@ -75,7 +77,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             window.location.replace('/dashboard');
           }, 100);
         } else {
-          setMessage('Registration successful! Please login.');
+          setMessage('Registration successful! Please check your email to verify your account before logging in.');
           setFormData({
             firstName: '',
             lastName: '',
