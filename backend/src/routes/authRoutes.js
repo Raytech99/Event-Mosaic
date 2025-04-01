@@ -195,7 +195,7 @@ router.get("/verify-email", async (req, res) => {
   user.resetPasswordExpires = expires;
   await user.save();
 
-  const resetLink = `http://eventmosaic.net/api/auth/reset-password?token=${token}&email=${email}`;
+  const resetLink = `http://eventmosaic.net/reset-password?token=${token}&email=${email}`;
 
   await sendEmail({
     to: email,
