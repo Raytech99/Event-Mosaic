@@ -16,5 +16,5 @@ export const API_ROUTES = {
     REGISTER: 'api/auth/register',
     EVENTS: 'api/events',
     EVENT: (id: string) => `api/events/${id}`,
-    FORGOT_PASSWORD: '/api/forgot-password'
+    FORGOT_PASSWORD: 'api/auth/forgot-password'
 }; 
