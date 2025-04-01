@@ -5,6 +5,7 @@ import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';  // Import the new AuthPage
 import DashboardPage from './components/DashboardPage';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
+import ResetPasswordPage from './components/ResetPasswordPage.tsx';
 
 const App: React.FC = () => {
   // Check if user is authenticated
@@ -25,6 +26,7 @@ const App: React.FC = () => {
         />
         <Route path="*" element={<Navigate to="/" />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>
     </Router>
   );
