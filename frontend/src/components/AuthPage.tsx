@@ -16,6 +16,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
     password: '',
     followedAccounts: []
   });
+  
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
