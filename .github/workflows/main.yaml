@@ -33,6 +33,10 @@ jobs:
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm install
+        
+      - name: Unit Tests
+        working-directory: ./backend
+        run: npm test
 
       # Install sshpass so we can use password-based SSH authentication.
       - name: Install sshpass
