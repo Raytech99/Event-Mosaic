@@ -5,7 +5,7 @@ import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';  // Import the new AuthPage
 import DashboardPage from './components/DashboardPage';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
-import ResetPasswordPage from './components/ResetPasswordPage.tsx';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
 const App: React.FC = () => {
   // Check if user is authenticated
