@@ -27,6 +27,7 @@
     "puppeteer": "^24.3.0"
   },
   "devDependencies": {
+    "camelcase": "^8.0.0",
     "jest": "^29.7.0",
     "supertest": "^7.1.0"
   }
