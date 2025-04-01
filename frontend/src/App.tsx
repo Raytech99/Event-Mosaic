@@ -4,6 +4,7 @@ import './App.css';  // Import the CSS file
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';  // Import the new AuthPage
 import DashboardPage from './components/DashboardPage';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
 
 const App: React.FC = () => {
   // Check if user is authenticated
@@ -23,6 +24,7 @@ const App: React.FC = () => {
           element={isAuthenticated() ? <DashboardPage /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Routes>
     </Router>
   );
