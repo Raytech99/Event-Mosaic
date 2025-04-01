@@ -27,7 +27,7 @@
     "puppeteer": "^24.3.0"
   },
   "devDependencies": {
-    "camelcase": "^8.0.0",
+    //"camelcase": "^8.0.0", //dep. error
     "jest": "^29.7.0",
     "jest-cli": "^29.7.0",
     "jest-environment-node": "^29.7.0",
