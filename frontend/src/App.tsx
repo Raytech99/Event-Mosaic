@@ -14,6 +14,10 @@ const App: React.FC = () => {
     return !!token;
   };
 
+  const handleApiRoute = () => {
+    return null;
+  };
+
   return (
     <Router>
       <Routes>
@@ -24,9 +28,11 @@ const App: React.FC = () => {
           path="/dashboard"
           element={isAuthenticated() ? <DashboardPage /> : <Navigate to="/login" />}
         />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/api-docs/*" element={handleApiRoute()} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
