@@ -3,6 +3,8 @@ const cors = require("cors");
 const eventsRoutes = require("./routes/eventsRoutes");
 const authRoutes = require("./routes/authRoutes"); // Import authentication routes
 const instagramRoutes = require("./routes/instagramRoutes"); // Import Instagram routes
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const app = express();
 
@@ -33,6 +35,9 @@ app.use(
 );
 
 app.use(express.json());
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint
 app.get("/", (req, res) => {
