@@ -10,7 +10,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "eventmosaic.net",
+        url: "/",
       },
     ],
   },
