@@ -159,7 +159,7 @@ async function extractEventDetails(text) {
           {
             role: "system",
             content:
-              "Extract event details as a structured JSON object with fields: name, date, time, location, caption. If no future event is found, return null. If any of the fields are not found, leave them blank, do not make up any information.",
+              "Extract event details as a structured JSON object with fields: name, date, time, location, caption. If no future event is found, return null. If there is no event title specified, create a relevant one. If any of the other fields are not found, leave them blank, do not make up any information.",
           },
           { role: "user", content: text },
         ],
@@ -192,7 +192,7 @@ exports.createEventFromNLP = async (caption, handle) => {
     
     // Create the new structured event
     const newEvent = new Event({
-      name: eventDetails.name || "Untitled Event", // Ensures if there's no event name it still sets one
+      name: eventDetails.name || "No title found", // Ensures if there's no event name it still sets one
       date: eventDetails.date,
       time: eventDetails.time,
       location: eventDetails.location,
