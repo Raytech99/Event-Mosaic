@@ -10,13 +10,14 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "http://eventmosaic.net",
+        url: "eventmosaic.net",
       },
     ],
   },
-  apis: ["./src/routes/*.js", "./src/models/*.js"],
+  apis: ["../routes/*.js", "../models/*.js"],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 module.exports = swaggerDocs;
+
