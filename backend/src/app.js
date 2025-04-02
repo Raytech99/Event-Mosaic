@@ -8,6 +8,9 @@ const swaggerSpec = require('./config/swagger');
 
 const app = express();
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Configure CORS
 app.use(
   cors({
@@ -36,8 +39,6 @@ app.use(
 
 app.use(express.json());
 
-// Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint
 app.get("/", (req, res) => {
