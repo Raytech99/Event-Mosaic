@@ -1371,3 +1371,21 @@ main {
   background: url('/images/7.png') repeat-y;
   opacity: 0.1;
 }
+
+/* Icon inside input styling */
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper input {
+  padding-right: 2.5rem; /* space for the checkmark */
+}
+
+.input-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  pointer-events: none;
+}
