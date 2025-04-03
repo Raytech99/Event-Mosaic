@@ -9,7 +9,7 @@ const swaggerSpec = require('./config/swagger');
 const app = express();
 
 // Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/swagger-ui', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Configure CORS
 app.use(
