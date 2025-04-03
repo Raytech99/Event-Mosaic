@@ -63,6 +63,7 @@ const DashboardPage: React.FC = () => {
   });
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check token expiration first
@@ -95,11 +96,30 @@ const DashboardPage: React.FC = () => {
     fetchEvents();
   }, []);
 
+  const standardizeDateFormat = (dateStr: string): string => {
+    try {
+      // Handle YYYY-MM-DD format
+      if (dateStr.includes('-')) {
+        const [year, month, day] = dateStr.split('-');
+        return `${month}/${day}/${year}`;
+      }
+      // Handle MM/DD/YYYY format
+      if (dateStr.includes('/')) {
+        const [month, day, year] = dateStr.split('/');
+        return `${month.padStart(2, '0')}/${day.padStart(2, '0')}/${year}`;
+      }
+      return dateStr;
+    } catch (error) {
+      console.error('Error standardizing date format:', error);
+      return dateStr;
+    }
+  };
+
   const fetchEvents = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error('Please log in to continue');
       }
 
       const response = await fetch(buildPath(API_ROUTES.EVENTS), {
@@ -111,18 +131,18 @@ const DashboardPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch events');
+        throw new Error('Unable to fetch events. Please try again later.');
       }
 
       const eventsData = await response.json();
       if (!Array.isArray(eventsData)) {
-        throw new Error('Invalid events data format');
+        throw new Error('Invalid data received from server');
       }
       
       const formattedEvents = eventsData.map((event: any) => ({
         ...event,
         _id: { $oid: event._id?.$oid || event._id },
+        date: standardizeDateFormat(event.date),
         postedBy: event.postedBy ? { $oid: event.postedBy.$oid || event.postedBy } : null,
         source: event.source || 'user',
         baseEventId: event.baseEventId?.$oid || event.baseEventId || null,
@@ -133,9 +153,9 @@ const DashboardPage: React.FC = () => {
       setEvents(formattedEvents);
     } catch (error: unknown) {
       console.error('Error fetching events:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load events';
+      const errorMessage = error instanceof Error ? error.message : 'Unable to load events';
       setError(errorMessage);
-      if (errorMessage === 'No authentication token found') {
+      if (errorMessage === 'Please log in to continue') {
         window.location.href = '/login';
       }
     } finally {
@@ -150,14 +170,15 @@ const DashboardPage: React.FC = () => {
       const userData = localStorage.getItem('user');
       
       if (!token || !userData) {
-        throw new Error('No authentication token found');
+        throw new Error('Please log in to continue');
       }
 
       const currentUser = JSON.parse(userData);
       const eventData = {
         ...newEvent,
         postedBy: currentUser._id,
-        source: 'user'
+        source: 'user',
+        date: standardizeDateFormat(newEvent.date)
       };
 
       const response = await fetch(buildPath(API_ROUTES.EVENTS), {
@@ -171,26 +192,23 @@ const DashboardPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create event');
+        throw new Error(errorData.error || 'Unable to create event. Please try again.');
       }
 
       const { event: createdEvent } = await response.json();
       const formattedEvent: Event = {
         ...createdEvent,
         _id: { $oid: createdEvent._id },
+        date: standardizeDateFormat(createdEvent.date),
         postedBy: { $oid: currentUser._id },
         source: 'user'
       };
       
-      setEvents(prevEvents => [...prevEvents, formattedEvent]);
+      setEvents(prevEvents => sortEvents([...prevEvents, formattedEvent]));
       setShowCreateEvent(false);
       setNewEvent({
         name: '',
-        date: new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }),
+        date: standardizeDateFormat(new Date().toLocaleDateString()),
         time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
         location: '',
         caption: '',
@@ -200,9 +218,9 @@ const DashboardPage: React.FC = () => {
       });
     } catch (error: unknown) {
       console.error('Error creating event:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create event';
+      const errorMessage = error instanceof Error ? error.message : 'Unable to create event';
       setError(errorMessage);
-      if (errorMessage === 'No authentication token found') {
+      if (errorMessage === 'Please log in to continue') {
         window.location.href = '/login';
       }
     }
@@ -211,20 +229,18 @@ const DashboardPage: React.FC = () => {
   const handleEditEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEvent?._id?.['$oid']) {
-      setError('Invalid event ID');
+      setError('Invalid event data');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error('Please log in to continue');
       }
 
-      // Extract the actual ID string from the $oid object
       const eventId = editingEvent._id.$oid;
       
-      // Helper function to safely extract ObjectId
       const extractObjectId = (obj: any): string | null => {
         if (obj && typeof obj === 'object' && '$oid' in obj) {
           return obj.$oid;
@@ -234,7 +250,7 @@ const DashboardPage: React.FC = () => {
 
       const eventData = {
         name: editingEvent.name,
-        date: editingEvent.date,
+        date: standardizeDateFormat(editingEvent.date),
         time: editingEvent.time,
         location: editingEvent.location,
         caption: editingEvent.caption,
@@ -262,7 +278,7 @@ const DashboardPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update event');
+        throw new Error(errorData.error || 'Unable to update event. Please try again.');
       }
 
       const responseData = await response.json();
@@ -271,6 +287,7 @@ const DashboardPage: React.FC = () => {
       const formattedEvent: Event = {
         ...updatedEventData,
         _id: { $oid: extractObjectId(updatedEventData._id) || updatedEventData._id },
+        date: standardizeDateFormat(updatedEventData.date),
         postedBy: updatedEventData.postedBy ? { $oid: extractObjectId(updatedEventData.postedBy) } : null,
         source: 'user',
         baseEventId: extractObjectId(updatedEventData.baseEventId),
@@ -279,29 +296,26 @@ const DashboardPage: React.FC = () => {
       };
 
       setEvents(prevEvents => {
+        let newEvents;
         if (editingEvent.source === 'ai') {
-          return [...prevEvents, formattedEvent];
+          newEvents = prevEvents.filter(event => event._id?.$oid !== editingEvent._id?.$oid).concat(formattedEvent);
         } else {
-          return prevEvents.map(event => 
+          newEvents = prevEvents.map(event => 
             event._id?.$oid === editingEvent._id?.$oid ? formattedEvent : event
           );
         }
+        return sortEvents(newEvents);
       });
 
-      // Update selected events if the edited event was in the current selection
       if (selectedEvents.some(e => e._id?.$oid === editingEvent._id?.$oid)) {
         const newDate = new Date(formattedEvent.date);
-        const dateStr = newDate.toLocaleDateString('en-US', {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric'
-        });
+        const dateStr = standardizeDateFormat(newDate.toLocaleDateString());
         
         setSelectedEvents(prevSelected => {
           const updatedSelected = prevSelected.map(event => 
             event._id?.$oid === editingEvent._id?.$oid ? formattedEvent : event
           );
-          return updatedSelected.filter(event => event.date === dateStr);
+          return sortEvents(updatedSelected.filter(event => event.date === dateStr));
         });
         
         setSelectedDate(newDate);
@@ -316,9 +330,9 @@ const DashboardPage: React.FC = () => {
       setEditingEvent(null);
     } catch (error: unknown) {
       console.error('Error updating event:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update event';
+      const errorMessage = error instanceof Error ? error.message : 'Unable to update event';
       setError(errorMessage);
-      if (errorMessage === 'No authentication token found') {
+      if (errorMessage === 'Please log in to continue') {
         window.location.href = '/login';
       }
     }
@@ -332,8 +346,7 @@ const DashboardPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/login';
-        return;
+        throw new Error('Please log in to continue');
       }
 
       const response = await fetch(buildPath(API_ROUTES.EVENT(eventId)), {
@@ -344,15 +357,22 @@ const DashboardPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete event');
+        throw new Error('Unable to delete event. Please try again.');
       }
 
-      // Remove the event from the state
-      setEvents(events.filter(event => event._id?.$oid !== eventId));
-    } catch (error) {
+      // Remove the event from both events and selectedEvents states
+      setEvents(prevEvents => prevEvents.filter(event => event._id?.$oid !== eventId));
+      setSelectedEvents(prevSelected => prevSelected.filter(event => event._id?.$oid !== eventId));
+      
+      // Clear error state on success
+      setError(null);
+    } catch (error: unknown) {
       console.error('Error deleting event:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete event');
+      const errorMessage = error instanceof Error ? error.message : 'Unable to delete event';
+      setError(errorMessage);
+      if (errorMessage === 'Please log in to continue') {
+        window.location.href = '/login';
+      }
     }
   };
 
@@ -418,13 +438,9 @@ const DashboardPage: React.FC = () => {
     if (!inputDate) return;
 
     try {
-      // Create date object in local timezone
-      const date = new Date(inputDate + 'T00:00:00');
-      const formattedDate = date.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
-      });
+      // Convert YYYY-MM-DD to MM/DD/YYYY
+      const [year, month, day] = inputDate.split('-');
+      const formattedDate = `${month}/${day}/${year}`;
       
       if (editingEvent) {
         setEditingEvent({ ...editingEvent, date: formattedDate });
@@ -456,37 +472,57 @@ const DashboardPage: React.FC = () => {
       title: event.name,
       start: eventDate,
       extendedProps: event,
-      backgroundColor: event.source === 'ai' ? '#4a90e2' : '#2ecc71',
-      borderColor: event.source === 'ai' ? '#357abd' : '#27ae60'
+      backgroundColor: event.source === 'ai' ? '#87a8e2' : '#eac261',
+      borderColor: event.source === 'ai' ? '#87a8e2' : '#eac261',
+      textColor: '#21255b',
+      display: 'block',
+      classNames: ['calendar-event', event.source === 'ai' ? 'ai-event' : 'user-event'],
+      displayEventTime: false,
+      allDay: true
     };
   });
 
   // Add sorting function near the top of the component
   const sortEvents = (events: Event[]) => {
     return [...events].sort((a, b) => {
-      // Convert date strings to Date objects for comparison
-      const [monthA, dayA, yearA] = a.date.split('/');
-      const [hoursA, minutesA] = a.time.split(':');
-      const dateA = new Date(
-        parseInt(yearA),
-        parseInt(monthA) - 1,
-        parseInt(dayA),
-        parseInt(hoursA),
-        parseInt(minutesA)
-      );
+      try {
+        // Parse the standardized date format (MM/DD/YYYY)
+        const [monthA, dayA, yearA] = a.date.split('/').map(Number);
+        const [hoursA, minutesA] = a.time.split(':').map(Number);
+        
+        const [monthB, dayB, yearB] = b.date.split('/').map(Number);
+        const [hoursB, minutesB] = b.time.split(':').map(Number);
 
-      const [monthB, dayB, yearB] = b.date.split('/');
-      const [hoursB, minutesB] = b.time.split(':');
-      const dateB = new Date(
-        parseInt(yearB),
-        parseInt(monthB) - 1,
-        parseInt(dayB),
-        parseInt(hoursB),
-        parseInt(minutesB)
-      );
+        // Create Date objects for comparison
+        const eventDateA = new Date(yearA, monthA - 1, dayA, hoursA, minutesA);
+        const eventDateB = new Date(yearB, monthB - 1, dayB, hoursB, minutesB);
 
-      return dateA.getTime() - dateB.getTime();
+        return eventDateA.getTime() - eventDateB.getTime();
+      } catch (error) {
+        console.error('Error sorting events:', error);
+        return 0; // Keep original order if there's an error
+      }
     });
+  };
+
+  const toggleEventExpansion = (eventId: string) => {
+    setExpandedEvents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(eventId)) {
+        newSet.delete(eventId);
+      } else {
+        newSet.add(eventId);
+      }
+      return newSet;
+    });
+  };
+
+  const formatTimeTo12Hour = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
   };
 
   if (isLoading) {
@@ -594,45 +630,52 @@ const DashboardPage: React.FC = () => {
                   </div>
                   <div className="event-details">
                     <div className="event-header">
-                      <div className="event-title">
-                        <h3>{event.name}</h3>
-                        <div className="event-meta">
-                          <span className={`source-badge ${event.source}`}>
-                            {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                      <div className="event-meta">
+                        <span className={`source-badge ${event.source}`}>
+                          {event.source === 'ai' ? '🤖 AI' : '👤 Custom'}
+                        </span>
+                        {event.handle && (
+                          <span className="handle-badge">
+                            @{event.handle}
                           </span>
-                          {event.handle && (
-                            <span className="handle-badge">
-                              {event.handle}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="event-actions">
-                        <button
-                          className="edit-btn"
-                          onClick={() => {
-                            console.log('Selected event for editing:', event);
-                            setEditingEvent(event);
-                            setShowEditEvent(true);
-                          }}
-                        >
-                          {event.source === 'ai' ? '✨ Customize' : '✏️ Edit'}
-                        </button>
-                        {event.source === 'user' && (
-                          <button
-                            className="delete-btn"
-                            onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
-                          >
-                            🗑️ Delete
-                          </button>
                         )}
                       </div>
+                      <div className="event-title">
+                        <h3>{event.name}</h3>
+                      </div>
+                    </div>
+                    <div className="event-actions">
+                      <button
+                        className="edit-btn"
+                        onClick={() => {
+                          setEditingEvent(event);
+                          setShowEditEvent(true);
+                        }}
+                      >
+                        {event.source === 'ai' ? '✨ Customize' : '✏️ Edit'}
+                      </button>
+                      {event.source === 'user' && (
+                        <button
+                          className="delete-btn"
+                          onClick={() => event._id?.$oid && handleDeleteEvent(event._id.$oid)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      )}
                     </div>
                     <div className="event-info">
-                      <span>⏰ {event.time}</span>
+                      <span>⏰ {formatTimeTo12Hour(event.time)}</span>
                       <span>📍 {event.location}</span>
-                      <span>{event.caption}</span>
+                      {expandedEvents.has(event._id?.$oid || '') && (
+                        <span className="event-caption">{event.caption}</span>
+                      )}
                     </div>
+                    <button 
+                      className="expand-btn"
+                      onClick={() => toggleEventExpansion(event._id?.$oid || '')}
+                    >
+                      {expandedEvents.has(event._id?.$oid || '') ? 'Show Less' : 'Show More'}
+                    </button>
                   </div>
                 </div>
               ))
@@ -678,9 +721,11 @@ const DashboardPage: React.FC = () => {
                         </div>
                       </div>
                       <div className="event-info">
-                        <p>⏰ {event.time}</p>
+                        <p>⏰ {formatTimeTo12Hour(event.time)}</p>
                         <p>📍 {event.location}</p>
-                        {event.caption && <p>{event.caption}</p>}
+                        {expandedEvents.has(event._id?.$oid || '') && (
+                          <p className="event-caption">{event.caption}</p>
+                        )}
                       </div>
                       <div className="event-actions">
                         <button
@@ -707,12 +752,6 @@ const DashboardPage: React.FC = () => {
               ) : (
                 <div className="no-events">
                   <p>No events scheduled for this day.</p>
-                  <button 
-                    className="create-event-btn"
-                    onClick={() => setShowCreateEvent(true)}
-                  >
-                    Create new event
-                  </button>
                 </div>
               )}
             </div>
