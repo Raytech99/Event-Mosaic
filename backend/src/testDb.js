@@ -1,4 +1,4 @@
-require("dotenv").config({ path: "../.env" }); // Adjust the path if needed
+require("dotenv").config({ path: "../../.env" }); // Adjust the path if needed
 const mongoose = require("mongoose");
 const instaAccounts = require("./models/instaAccounts");
 const connectDB = require("./db");
