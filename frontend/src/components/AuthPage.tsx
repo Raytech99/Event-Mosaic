@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
+import { validateEmail, validatePassword } from '../utils/validationUtils';
+
 
 interface AuthPageProps {
   isLogin: boolean;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,10 +18,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
     password: '',
     followedAccounts: []
   });
+  
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!isLogin);
+  const [validPassword, setValidPassword] = useState(false);
+  const [validEmail, setValidEmail] = useState(false);
+
 
   // Update isRegistering when isLogin prop changes
   useEffect(() => {
@@ -29,23 +34,35 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+  
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  
+    if (name === 'email') setValidEmail(validateEmail(value));
+    if (name === 'password') setValidPassword(validatePassword(value));
   };
+  
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent multiple submissions
+    
+    
     setIsLoading(true);
     setMessage('');
+
+    if (isRegistering && (!validateEmail(formData.email) || !validatePassword(formData.password))) {
+      setMessage('Please fill out the form correctly before submitting.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const endpoint = buildPath(isRegistering ? API_ROUTES.REGISTER : API_ROUTES.LOGIN);
       const body = isRegistering ? formData : { emailOrUsername, password: formData.password };
-
-      console.log('Making request to:', endpoint);
-      console.log('With body:', body);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -57,13 +74,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
         body: JSON.stringify(body),
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (response.ok) {
         if (!isRegistering) {
-          console.log('Login response data:', data); // Debug log
+          // Store user data first
           const userData = {
             _id: data.user.id,
             firstName: data.user.firstName,
@@ -71,12 +86,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             email: data.user.email,
             username: data.user.username
           };
-          console.log('Storing user data:', userData); // Debug log
-          localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(userData));
-          navigate('/dashboard');
+          localStorage.setItem('token', data.token);
+          
+          // Use a small timeout to ensure storage is complete
+          setTimeout(() => {
+            window.location.replace('/dashboard');
+          }, 100);
         } else {
-          setMessage('Registration successful! Please login.');
+          setMessage('Registration successful! Please check your email to verify your account before logging in.');
           setFormData({
             firstName: '',
             lastName: '',
@@ -85,16 +103,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             password: '',
             followedAccounts: []
           });
-          setIsRegistering(false); // Switch to login form after successful registration
+          setIsRegistering(false);
+          setIsLoading(false);
         }
       } else {
         setMessage(data.msg || 'Error occurred. Please try again.');
+        setIsLoading(false); // Clear loading state on error
       }
     } catch (error) {
       console.error('Error during auth:', error);
       setMessage('An error occurred. Please try again later.');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Clear loading state on error
     }
   };
 
@@ -144,14 +163,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
                     required
                   />
                 </div>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-wrapper">
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                  {isRegistering && formData.email && (
+                    <span className="input-icon">{validEmail ? '✅' : '❌'}</span>
+                  )}
+              </div>
+
                 <input
                   type="text"
                   name="username"
@@ -172,14 +197,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
                 required
               />
             )}
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            
+            <div className="input-wrapper">
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              {isRegistering && formData.password && (
+                <span className="input-icon">{validPassword ? '✅' : '❌'}</span>
+              )}
+            </div>
+          {isRegistering && formData.password && !validPassword && (
+            <p style={{ color: 'red', fontSize: '0.9em' }}>
+              Must be 8+ characters with uppercase, lowercase, number, and symbol
+            </p>
+          )}
+
+
           </div>
 
           <input

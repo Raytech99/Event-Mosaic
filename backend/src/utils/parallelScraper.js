@@ -4,10 +4,10 @@ const { InstagramScraper } = require("./instagramScraper");
 async function scrapeMultipleAccounts(usernames, credentials, options = {}) {
   // Set default options
   const {
-    concurrencyLimit = 2,
-    postLimit = 5,
+    concurrencyLimit = 3,
+    postLimit = 10,
     timeout = 120000,
-    timeThreshold = 12,
+    timeThreshold = 24,
   } = options;
 
   // Validate inputs
