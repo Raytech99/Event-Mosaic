@@ -11,6 +11,13 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+      INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+      INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -33,6 +40,10 @@ jobs:
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm install
+
+      - name: Unit Tests
+        working-directory: ./backend
+        run: npm test
 
       # Install sshpass so we can use password-based SSH authentication.
       - name: Install sshpass

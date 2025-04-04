@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
+import { validateEmail, validatePassword } from '../utils/validationUtils';
+
 
 interface AuthPageProps {
   isLogin: boolean;
@@ -16,10 +18,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
     password: '',
     followedAccounts: []
   });
+  
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!isLogin);
+  const [validPassword, setValidPassword] = useState(false);
+  const [validEmail, setValidEmail] = useState(false);
+
 
   // Update isRegistering when isLogin prop changes
   useEffect(() => {
@@ -28,18 +34,31 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+  
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  
+    if (name === 'email') setValidEmail(validateEmail(value));
+    if (name === 'password') setValidPassword(validatePassword(value));
   };
+  
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Prevent multiple submissions
     
+    
     setIsLoading(true);
     setMessage('');
+
+    if (isRegistering && (!validateEmail(formData.email) || !validatePassword(formData.password))) {
+      setMessage('Please fill out the form correctly before submitting.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const endpoint = buildPath(isRegistering ? API_ROUTES.REGISTER : API_ROUTES.LOGIN);
@@ -75,7 +94,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
             window.location.replace('/dashboard');
           }, 100);
         } else {
-          setMessage('Registration successful! Please login.');
+          setMessage('Registration successful! Please check your email to verify your account before logging in.');
           setFormData({
             firstName: '',
             lastName: '',
@@ -144,14 +163,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
                     required
                   />
                 </div>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-wrapper">
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                  {isRegistering && formData.email && (
+                    <span className="input-icon">{validEmail ? '✅' : '❌'}</span>
+                  )}
+              </div>
+
                 <input
                   type="text"
                   name="username"
@@ -172,14 +197,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
                 required
               />
             )}
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            
+            <div className="input-wrapper">
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              {isRegistering && formData.password && (
+                <span className="input-icon">{validPassword ? '✅' : '❌'}</span>
+              )}
+            </div>
+          {isRegistering && formData.password && !validPassword && (
+            <p style={{ color: 'red', fontSize: '0.9em' }}>
+              Must be 8+ characters with uppercase, lowercase, number, and symbol
+            </p>
+          )}
+
+
           </div>
 
           <input
