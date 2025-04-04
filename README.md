@@ -1,20 +1,32 @@
-# POOSD-Mern-Group1
-Full Stack Large Project (MERN) for POOSD
+# Event Mosaic
 
-# Project Description
-Event aggregator to scrape information from UCF clubs' instagram accounts and collect all events in one place.
-Using an instagram API to scrape, and natural language processing to withdraw the specific useful event information, and ignore non-event posts.
+**Event Mosaic** is a web app that extracts event details from Instagram captions and displays them on a personal calendar. Users follow selected accounts, and events are auto-populated using AI.
 
-# Team Members:
-- Joseph Benno
-- Maya Couceiro
-- Rayyan Jamil
-- Jessica Morris
-- Myra Syed
-- Nabeeha Vorajee
+---
 
-# Start backend with nodemon
-```
-npm run dev
-```
+## 🔧 Tech Stack
 
+- Next.js (Frontend & API)
+- MongoDB
+- OpenAI API
+- NextAuth.js
+- Tailwind CSS
+
+---
+
+## 🚀 Features
+
+- AI-powered event extraction
+- Instagram caption parsing
+- Personalized calendar
+- Secure auth with NextAuth
+
+---
+
+## 🛠 Setup
+
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/your-username/event-mosaic.git
+   cd event-mosaic
+   ```
