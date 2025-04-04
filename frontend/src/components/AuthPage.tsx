@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
 import { validateEmail, validatePassword } from '../utils/validationUtils';
+import LoadingScreen from './LoadingScreen';
 
 
 interface AuthPageProps {
@@ -89,10 +90,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
           localStorage.setItem('user', JSON.stringify(userData));
           localStorage.setItem('token', data.token);
           
-          // Use a small timeout to ensure storage is complete
+          // Keep loading state true and redirect after showing loading screen
+          // The loading state will keep the loading screen visible
           setTimeout(() => {
             window.location.replace('/dashboard');
-          }, 100);
+          }, 1500); // Show loading for at least 1.5 seconds for good UX
         } else {
           setMessage('Registration successful! Please check your email to verify your account before logging in.');
           setFormData({
@@ -119,6 +121,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ isLogin }) => {
 
   return (
     <div className="auth-container">
+      {isLoading && !isRegistering && <LoadingScreen message="Logging in..." />}
       <nav>
         <img src="/images/navbarlogo.png" alt="Logo" className="nav-logo" />
         <ul>

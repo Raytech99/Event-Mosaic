@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
 import { checkAndClearToken } from '../utils/tokenUtils';
+import LoadingScreen from './LoadingScreen';
 
 interface Event {
   _id?: {
@@ -526,7 +527,7 @@ const DashboardPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingScreen message="Loading your events..." />;
   }
 
   if (error) {
