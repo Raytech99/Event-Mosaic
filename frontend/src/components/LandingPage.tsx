@@ -31,16 +31,6 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="landing-page">
-      {/* Navigation Bar */}
-      <nav>
-        <img src="/images/navbarlogo.png" alt="Logo" className="nav-logo" />
-        <ul>
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/about">About</Link></li>
-          <li><Link to="/login">Login</Link></li>
-        </ul>
-      </nav>
-
       {/* Background Triangles - reduced to two patterns */}
       <div className="triangle-background">
         <div className="triangle-top-left">
