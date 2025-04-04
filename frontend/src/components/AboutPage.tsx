@@ -62,14 +62,12 @@ const AboutPage: React.FC = () => {
   return (
     <div className="about-page">
       <nav>
-        <div className="nav-links">
-          <ul>
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/about">About</Link></li>
-            <li><Link to="/login">Login</Link></li>
-          </ul>
-        </div>
         <img src="/images/navbarlogo.png" alt="Logo" className="nav-logo" />
+        <ul>
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/about">About</Link></li>
+          <li><Link to="/login">Login</Link></li>
+        </ul>
       </nav>
 
       <div className="about-content">
