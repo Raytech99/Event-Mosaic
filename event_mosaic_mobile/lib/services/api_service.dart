@@ -41,7 +41,8 @@ class ApiService {
     );
 
     if (response.statusCode == 201) {
-      return Event.fromJson(json.decode(response.body));
+      final responseData = json.decode(response.body);
+      return Event.fromJson(responseData['event']);
     } else {
       throw Exception('Failed to create event: ${response.body}');
     }

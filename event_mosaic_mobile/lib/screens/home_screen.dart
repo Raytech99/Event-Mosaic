@@ -297,118 +297,244 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _user == null
-          ? const Center(child: CircularProgressIndicator())
-          : _isLoading
+      body: Stack(
+        children: [
+          _user == null
               ? const Center(child: CircularProgressIndicator())
-              : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Error: $_error',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _fetchEvents,
-                            child: const Text('Try Again'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Welcome section
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                                  child: Text(
-                                    '${_user!['firstName']?.isNotEmpty == true ? _user!['firstName'][0] : ''}${_user!['lastName']?.isNotEmpty == true ? _user!['lastName'][0] : ''}',
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Welcome back,',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.secondary,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${_user!['firstName']} ${_user!['lastName']}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // Create Event button
-                          Center(
-                            child: ElevatedButton.icon(
-                              onPressed: _openCreateEventModal,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Create New Event'),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // Tabs
-                          Row(
+              : _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Expanded(
-                                child: _buildTabButton(
-                                  context,
-                                  'All Upcoming',
-                                  0,
-                                  Icons.event,
-                                ),
+                              Text(
+                                'Error: $_error',
+                                style: const TextStyle(color: Colors.red),
                               ),
-                              Expanded(
-                                child: _buildTabButton(
-                                  context,
-                                  'Calendar',
-                                  1,
-                                  Icons.calendar_today,
-                                ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _fetchEvents,
+                                child: const Text('Try Again'),
                               ),
                             ],
                           ),
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Welcome section
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                                      child: Text(
+                                        '${_user!['firstName']?.isNotEmpty == true ? _user!['firstName'][0] : ''}${_user!['lastName']?.isNotEmpty == true ? _user!['lastName'][0] : ''}',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Welcome back,',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.secondary,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${_user!['firstName']} ${_user!['lastName']}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Create Event button
+                              Center(
+                                child: ElevatedButton.icon(
+                                  onPressed: _openCreateEventModal,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Create New Event'),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Tabs
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTabButton(
+                                      context,
+                                      'All Upcoming',
+                                      0,
+                                      Icons.event,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildTabButton(
+                                      context,
+                                      'Calendar',
+                                      1,
+                                      Icons.calendar_today,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              // Content based on selected tab
+                              if (_selectedIndex == 0)
+                                _buildUpcomingEvents()
+                              else
+                                _buildCalendarView(),
+                            ],
+                          ),
+                        ),
+          if (_showCreateEvent)
+            Container(
+              color: Colors.black54,
+              child: Center(
+                child: Card(
+                  margin: const EdgeInsets.all(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Create New Event',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Event Name',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter an event name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _dateController,
+                            decoration: const InputDecoration(
+                              labelText: 'Date (MM/DD/YYYY)',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a date';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _timeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Time (HH:MM)',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a time';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _locationController,
+                            decoration: const InputDecoration(
+                              labelText: 'Location',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a location';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _handleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Club Handle (Optional)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _captionController,
+                            decoration: const InputDecoration(
+                              labelText: 'Caption',
+                              border: OutlineInputBorder(),
+                            ),
+                            maxLines: 3,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a caption';
+                              }
+                              return null;
+                            },
+                          ),
                           const SizedBox(height: 24),
-                          // Content based on selected tab
-                          if (_selectedIndex == 0)
-                            _buildUpcomingEvents()
-                          else
-                            _buildCalendarView(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showCreateEvent = false;
+                                  });
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton(
+                                onPressed: _handleCreateEvent,
+                                child: const Text('Create'),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: _selectedIndex == 1
           ? FloatingActionButton(
               onPressed: _openCreateEventModal,

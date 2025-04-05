@@ -24,11 +24,11 @@ class Event {
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: json['_id']?['\$oid'] ?? json['_id'],
-      name: json['name'],
-      date: json['date'],
-      time: json['time'],
-      location: json['location'],
-      caption: json['caption'],
+      name: json['name'] ?? '',
+      date: json['date'] ?? '',
+      time: json['time'] ?? '',
+      location: json['location'] ?? '',
+      caption: json['caption'] ?? '',
       handle: json['handle'],
       source: json['source'] ?? 'user',
       postedBy: json['postedBy']?['\$oid'] ?? json['postedBy'],

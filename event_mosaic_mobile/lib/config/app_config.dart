@@ -9,8 +9,8 @@ class AppConfig {
     if (isProduction) {
       return 'https://eventmosaic.net/api';
     } else {
-      // Use 127.0.0.1 instead of localhost for iOS simulator
-      return 'http://127.0.0.1:3000/api';
+      // Use localhost for iOS simulator
+      return 'http://localhost:3000/api';
     }
   }
 
