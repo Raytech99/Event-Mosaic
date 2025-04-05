@@ -17,6 +17,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-Client-Type': 'mobile-app', // Identify as mobile app
         },
         body: json.encode({
           'emailOrUsername': email,
@@ -65,6 +66,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-Client-Type': 'mobile-app', // Identify as mobile app
         },
         body: json.encode({
           'firstName': firstName,
