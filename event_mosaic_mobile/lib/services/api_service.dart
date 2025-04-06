@@ -5,7 +5,6 @@ import '../config/app_config.dart';
 import 'storage_service.dart';
 
 class ApiService {
-  // Use the baseUrl from the configuration
   String get baseUrl => AppConfig.baseUrl;
   final StorageService _storageService = StorageService();
 

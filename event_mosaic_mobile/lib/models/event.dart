@@ -22,10 +22,32 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    String formatDate(String dateStr) {
+      try {
+        // If the date is already in MM/dd/yyyy format, return it as is
+        if (dateStr.contains('/')) return dateStr;
+        
+        // If the date is in yyyy-MM-dd format, convert it
+        final parts = dateStr.split('-');
+        if (parts.length == 3) {
+          final year = parts[0];
+          final month = parts[1];
+          final day = parts[2];
+          return '$month/$day/$year';
+        }
+        
+        // If neither format matches, return the original string
+        return dateStr;
+      } catch (e) {
+        // If there's any error in parsing, return the original string
+        return dateStr;
+      }
+    }
+
     return Event(
       id: json['_id']?['\$oid'] ?? json['_id'],
       name: json['name'] ?? '',
-      date: json['date'] ?? '',
+      date: formatDate(json['date'] ?? ''),
       time: json['time'] ?? '',
       location: json['location'] ?? '',
       caption: json['caption'] ?? '',
