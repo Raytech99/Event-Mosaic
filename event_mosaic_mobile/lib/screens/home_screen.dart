@@ -120,8 +120,145 @@ class _HomeScreenState extends State<HomeScreen> {
     
     setState(() {
       _editingEvent = event;
-      _showEditEvent = true;
     });
+
+    showDialog(
+      context: context,
+      builder: (context) => SingleChildScrollView(
+        child: Container(
+          color: Colors.black54,
+          child: Center(
+            child: Card(
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Customize Event',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Event Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter an event name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _dateController,
+                        decoration: const InputDecoration(
+                          labelText: 'Date (MM/DD/YYYY)',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a date';
+                          }
+                          // Validate date format
+                          try {
+                            DateFormat('MM/dd/yyyy').parse(value);
+                            return null;
+                          } catch (e) {
+                            return 'Please enter a valid date in MM/DD/YYYY format';
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _timeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Time (HH:MM)',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a time';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _locationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Location',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a location';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _handleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Club Handle (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _captionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Caption',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a caption';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              setState(() {
+                                _editingEvent = null;
+                              });
+                            },
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                _handleEditEvent();
+                              }
+                            },
+                            child: const Text('Save Changes'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _resetFormControllers() {
@@ -172,43 +309,78 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleEditEvent() async {
-    if (!_formKey.currentState!.validate() || _editingEvent == null) return;
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Format the date to ensure it's in the correct format
+        String formatDate(String dateStr) {
+          try {
+            final parts = dateStr.split('/');
+            if (parts.length == 3) {
+              final month = int.tryParse(parts[0]) ?? 1;
+              final day = int.tryParse(parts[1]) ?? 1;
+              final year = int.tryParse(parts[2]) ?? DateTime.now().year;
+              return '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}/$year';
+            }
+            return dateStr;
+          } catch (e) {
+            return dateStr;
+          }
+        }
 
+        final updatedEvent = Event(
+          id: _editingEvent!.id,
+          name: _nameController.text,
+          date: formatDate(_dateController.text),
+          time: _timeController.text,
+          location: _locationController.text,
+          caption: _captionController.text,
+          handle: _handleController.text.isEmpty ? null : _handleController.text,
+          source: _editingEvent!.source,
+          postedBy: _editingEvent!.postedBy,
+        );
+
+        await _apiService.updateEvent(updatedEvent);
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // Close the modal
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Event updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _refreshEvents(); // Refresh the events list
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close the modal even if there's an error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update event: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _refreshEvents() async {
     try {
-      final updatedEvent = Event(
-        id: _editingEvent!.id,
-        name: _nameController.text,
-        date: _dateController.text,
-        time: _timeController.text,
-        location: _locationController.text,
-        caption: _captionController.text,
-        handle: _handleController.text.isNotEmpty ? _handleController.text : null,
-        source: 'user',
-        postedBy: _user!['_id'],
-      );
-
-      final result = await _apiService.updateEvent(updatedEvent);
-      
+      final events = await _apiService.getEvents();
       if (mounted) {
         setState(() {
-          final index = _events.indexWhere((e) => e.id == _editingEvent!.id);
-          if (index != -1) {
-            _events[index] = result;
-          }
-          _showEditEvent = false;
-          _editingEvent = null;
-          _updateSelectedDateEvents();
+          _events = events;
+          _isLoading = false;
+          _error = null;
         });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event updated successfully')),
-        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating event: ${e.toString()}')),
-        );
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
       }
     }
   }
@@ -774,13 +946,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         TextButton.icon(
                           onPressed: () => _openEditEventModal(event),
-                          icon: Icon(
-                            event.source == 'ai' ? Icons.auto_awesome : Icons.edit,
+                          icon: const Icon(
+                            Icons.auto_awesome,
                             size: 16,
                           ),
-                          label: Text(
-                            event.source == 'ai' ? 'Customize' : 'Edit',
-                          ),
+                          label: const Text('Customize'),
                         ),
                         if (event.source == 'user')
                           TextButton.icon(
@@ -963,13 +1133,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               TextButton.icon(
                                 onPressed: () => _openEditEventModal(event),
-                                icon: Icon(
-                                  event.source == 'ai' ? Icons.auto_awesome : Icons.edit,
+                                icon: const Icon(
+                                  Icons.auto_awesome,
                                   size: 16,
                                 ),
-                                label: Text(
-                                  event.source == 'ai' ? 'Customize' : 'Edit',
-                                ),
+                                label: const Text('Customize'),
                               ),
                               if (event.source == 'user')
                                 TextButton.icon(

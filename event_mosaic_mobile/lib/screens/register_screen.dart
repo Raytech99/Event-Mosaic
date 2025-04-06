@@ -34,24 +34,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _passwordController.text,
         );
         
-        print('Registration successful'); // Debug log
+        print('Registration successful, attempting login...'); // Debug log
+        
+        // After successful registration, log in the user
+        final loginResponse = await _authService.login(
+          _emailController.text,
+          _passwordController.text,
+        );
+        
+        print('Login successful after registration'); // Debug log
+        
+        // Store the token and user data
+        await _storageService.saveToken(loginResponse['token']);
+        
+        // Create user object from response
+        final userData = {
+          'firstName': loginResponse['firstName'],
+          'lastName': loginResponse['lastName'],
+          'email': loginResponse['email'],
+          'id': loginResponse['userId']
+        };
+        
+        await _storageService.saveUser(userData);
         
         if (mounted) {
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! Please log in.'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          
-          // Wait for snackbar to be visible before navigating
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.pushReplacementNamed(context, '/login');
-            }
-          });
+          Navigator.pushReplacementNamed(context, '/home');
         }
       } catch (e) {
         print('Registration/Login error: $e'); // Debug log
