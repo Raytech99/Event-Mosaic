@@ -81,7 +81,7 @@ router.post(
             });
 
             // Only generate verification token for web clients
-            if (!isMobileApp) {
+//            if (!isMobileApp) {
                 const crypto = require("crypto");
                 const verificationToken = crypto.randomBytes(32).toString("hex");
                 user.emailVerificationToken = verificationToken;
@@ -111,9 +111,9 @@ router.post(
                         id: user._id
                     }
                 });
-            } else {
+ //           } else {
                 // For mobile app clients, save without verification token
-                await user.save();
+/*                await user.save();
                 console.log("📄 Saving user to DB (mobile app, auto-verified)...");
                 
                 res.status(201).json({ 
@@ -127,7 +127,7 @@ router.post(
                     }
                 });
             }
-
+*/
         } catch (err) {
             console.error("Registration Error:", err);
             res.status(500).json({ msg: "Server error", error: err.message });
