@@ -25,22 +25,38 @@ class Event {
     String formatDate(String dateStr) {
       try {
         // If the date is already in MM/dd/yyyy format, return it as is
-        if (dateStr.contains('/')) return dateStr;
-        
-        // If the date is in yyyy-MM-dd format, convert it
-        final parts = dateStr.split('-');
-        if (parts.length == 3) {
-          final year = parts[0];
-          final month = parts[1];
-          final day = parts[2];
-          return '$month/$day/$year';
+        if (dateStr.contains('/')) {
+          // Validate the format
+          final parts = dateStr.split('/');
+          if (parts.length == 3) {
+            // Simple validation of month/day/year
+            final month = int.tryParse(parts[0]) ?? 1;
+            final day = int.tryParse(parts[1]) ?? 1;
+            final year = int.tryParse(parts[2]) ?? DateTime.now().year;
+            
+            // Format with leading zeros
+            return '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}/$year';
+          }
         }
         
-        // If neither format matches, return the original string
-        return dateStr;
+        // If the date is in yyyy-MM-dd format, convert it
+        if (dateStr.contains('-')) {
+          final parts = dateStr.split('-');
+          if (parts.length == 3) {
+            final year = parts[0];
+            final month = parts[1];
+            final day = parts[2];
+            return '$month/$day/$year';
+          }
+        }
+        
+        // If neither format matches or validation fails, return today's date
+        final now = DateTime.now();
+        return '${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/${now.year}';
       } catch (e) {
-        // If there's any error in parsing, return the original string
-        return dateStr;
+        // If there's any error in parsing, return today's date
+        final now = DateTime.now();
+        return '${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/${now.year}';
       }
     }
 
@@ -59,6 +75,7 @@ class Event {
 
   Map<String, dynamic> toJson() {
     return {
+      if (id != null) '_id': id,
       'name': name,
       'date': date,
       'time': time,
@@ -66,7 +83,7 @@ class Event {
       'caption': caption,
       'handle': handle,
       'source': source,
-      'postedBy': postedBy,
+      if (postedBy != null) 'postedBy': postedBy,
     };
   }
 } 
