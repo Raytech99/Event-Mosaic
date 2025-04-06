@@ -615,12 +615,30 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // Sort events by date and time
+    final sortedEvents = List<Event>.from(_events);
+    sortedEvents.sort((a, b) {
+      // First compare dates
+      final dateA = DateFormat('MM/dd/yyyy').parse(a.date);
+      final dateB = DateFormat('MM/dd/yyyy').parse(b.date);
+      final dateComparison = dateA.compareTo(dateB);
+      
+      // If dates are the same, compare times
+      if (dateComparison == 0) {
+        final timeA = DateFormat('HH:mm').parse(a.time);
+        final timeB = DateFormat('HH:mm').parse(b.time);
+        return timeA.compareTo(timeB);
+      }
+      
+      return dateComparison;
+    });
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _events.length,
+      itemCount: sortedEvents.length,
       itemBuilder: (context, index) {
-        final event = _events[index];
+        final event = sortedEvents[index];
         final eventDate = DateFormat('MM/dd/yyyy').parse(event.date);
         final isExpanded = _expandedEvents.contains(event.id ?? '');
         
