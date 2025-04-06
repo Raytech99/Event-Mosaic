@@ -10,6 +10,8 @@ const UserSchema = new mongoose.Schema({
     followedAccounts: [{ type: mongoose.Schema.Types.ObjectId, ref: "instaAccounts" }], 
     createdAt: { type: Date, default: Date.now },
     emailVerified: { type: Boolean, default: false },
+    //emailVerified: { type: Boolean, default: false },
+
     emailVerificationToken: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },

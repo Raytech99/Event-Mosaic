@@ -16,10 +16,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _storageService = StorageService();
   bool _isLoading = false;
+  String? _errorMessage;
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
       
       try {
         print('Starting login process...'); // Debug log
@@ -50,25 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         print('Login error: $e'); // Debug log
-        if (mounted) {
-          String errorMessage = 'An error occurred';
-          if (e.toString().contains('Invalid credentials')) {
-            errorMessage = 'Invalid email or password';
-          } else if (e.toString().contains('Failed to connect')) {
-            errorMessage = 'Please check your internet connection';
-          }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
       }
     }
   }
@@ -142,11 +131,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   // Login button
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : ElevatedButton(
                           onPressed: _login,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
                           child: const Text('Login'),
                         ),
                   const SizedBox(height: 16),

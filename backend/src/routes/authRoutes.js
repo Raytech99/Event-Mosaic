@@ -4,7 +4,10 @@ const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
 const sendEmail = require("../utils/sendEmail");
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
+console.log("Loading auth routes with NODE_ENV:", process.env.NODE_ENV);
 
 const router = express.Router();
 
@@ -29,6 +32,8 @@ router.post(
         }
      
         const { firstName, lastName, username, email, password, followedAccounts } = req.body;
+        const isMobileApp = req.headers['x-client-type'] === 'mobile-app';
+        console.log("Client type:", isMobileApp ? "Mobile App" : "Web");
 
         const followedHandles = followedAccounts || [];
         const followedAccountIds = [];
@@ -71,33 +76,58 @@ router.post(
                 username,
                 email,
                 password,
-                followedAccounts: [] //empty array
+                followedAccounts: [], //empty array
+                emailVerified: isMobileApp // Auto-verify for mobile app clients
             });
 
-            const crypto = require("crypto");
-            const sendEmail = require("../utils/sendEmail");
-
-            const verificationToken = crypto.randomBytes(32).toString("hex");
-            user.emailVerificationToken = verificationToken;
-            await user.save();
-            console.log("📄 Saving user to DB...");
-            
-            const verifyLink = `http://142.93.178.54/api/auth/verify-email?token=${verificationToken}&email=${user.email}`;
-            
-            await sendEmail({
-              to: user.email,
-              subject: "Verify your email",
-              html: `
-                <p>Hi ${user.firstName},</p>
-                <p>Thanks for signing up for Event Mosaic!</p>
-                <p>Please <a href="${verifyLink}">click here to verify your email</a>.</p>
-              `,
-            });
-            console.log("✅ Verification email sent to", user.email);
-
-            
-            res.status(201).json({ msg: "Verification email sent. Please check your inbox." });
-
+            // Only generate verification token for web clients
+//            if (!isMobileApp) {
+                const crypto = require("crypto");
+                const verificationToken = crypto.randomBytes(32).toString("hex");
+                user.emailVerificationToken = verificationToken;
+                
+                await user.save();
+                console.log("📄 Saving user to DB...");
+                
+                const verifyLink = `http://eventmosaic.net/api/auth/verify-email?token=${verificationToken}&email=${user.email}`;
+                
+                await sendEmail({
+                    to: user.email,
+                    subject: "Verify your email",
+                    html: `
+                        <p>Hi ${user.firstName},</p>
+                        <p>Thanks for signing up for Event Mosaic!</p>
+                        <p>Please <a href="${verifyLink}">click here to verify your email</a>.</p>
+                    `,
+                });
+                
+                res.status(201).json({ 
+                    msg: "Registration successful! Please check your email to verify your account.",
+                    user: {
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        email: user.email,
+                        username: user.username,
+                        id: user._id
+                    }
+                });
+ //           } else {
+                // For mobile app clients, save without verification token
+/*                await user.save();
+                console.log("📄 Saving user to DB (mobile app, auto-verified)...");
+                
+                res.status(201).json({ 
+                    msg: "Registration successful! You can now log in.",
+                    user: {
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        email: user.email,
+                        username: user.username,
+                        id: user._id
+                    }
+                });
+            }
+*/
         } catch (err) {
             console.error("Registration Error:", err);
             res.status(500).json({ msg: "Server error", error: err.message });
@@ -105,16 +135,15 @@ router.post(
     }
 );
 
-
-
-
 // Login Route
 router.post("/login", async (req, res) => {
     console.log("Received login request body:", req.body);  // Add this line to log the incoming request
     const { emailOrUsername, password } = req.body;
+    const isMobileApp = req.headers['x-client-type'] === 'mobile-app';
 
     try {
         console.log("Login attempt for:", emailOrUsername);
+        console.log("Client type:", isMobileApp ? "Mobile App" : "Web");
         
         let user = await User.findOne({ 
             $or: [{ email: emailOrUsername }, { username: emailOrUsername }]
@@ -139,9 +168,11 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ msg: "Invalid credentials" });
         }
 
-        if (!user.emailVerified) {
+        // Skip email verification check for mobile app clients
+        if (!isMobileApp && !user.emailVerified) {
+            console.log("Email not verified for web client");
             return res.status(401).json({ msg: "Please verify your email before logging in." });
-        }          
+        }
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
         console.log("Login successful, token generated");
@@ -161,7 +192,6 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ msg: "Server error", error: err.message });
     }
 });
-
 
 module.exports = router;
 
