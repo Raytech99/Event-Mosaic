@@ -1389,3 +1389,480 @@ main {
   font-size: 1.2rem;
   pointer-events: none;
 }
+
+/* Loading Screen Styles */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loading-container {
+  text-align: center;
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.loading-spinner {
+  border: 5px solid rgba(26, 35, 126, 0.2); /* Light navy blue */
+  border-top: 5px solid #1a237e; /* Solid navy blue */
+  border-radius: 50%;
+  width: 120px; /* Increased size to fit larger logo */
+  height: 120px; /* Increased size to fit larger logo */
+  margin: 0 auto 20px;
+  animation: spin 1.5s linear infinite;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-logo {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Prevents the logo from capturing mouse events */
+  animation: anti-spin 1.5s linear infinite; /* Counter-rotate to keep logo upright */
+}
+
+.loading-logo img {
+  width: 100px; /* Increased from 40px to 100px */
+  height: 100px; /* Increased from 40px to 100px */
+  object-fit: contain;
+  border-radius: 50%;
+  background-color: white;
+  padding: 2px;
+}
+
+.loading-message {
+  font-size: 18px;
+  color: #333;
+  margin: 10px 0 0;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes anti-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); } /* Reverse spin to keep logo upright */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* About Page Styles */
+.about-page {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  font-family: 'Roboto', sans-serif;
+  padding-top: 100px; /* Add padding to account for the fixed navigation bar */
+}
+
+.about-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.about-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.about-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.about-description {
+  max-width: 800px;
+  margin: 0 auto 3rem;
+  line-height: 1.6;
+  font-size: 1.1rem;
+  color: #444;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  text-align: center;
+}
+
+.team-heading {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  color: #333;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.team-member {
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
+}
+
+.team-member:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.member-image {
+  height: 200px;
+  overflow: hidden;
+}
+
+.member-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-info {
+  padding: 1.5rem;
+}
+
+.member-info h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  color: #333;
+}
+
+.member-info h4 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: #7f0000;
+  font-weight: 500;
+}
+
+.member-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #666;
+}
+
+.member-info h3.member-name a {
+  text-decoration: none;
+  color: #333;
+  transition: color 0.3s ease;
+  display: inline-block;
+  position: relative;
+}
+
+.member-info h3.member-name a::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: #f9a825;
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease;
+}
+
+.member-info h3.member-name a:hover {
+  color: #f9a825;
+}
+
+.member-info h3.member-name a:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.animate-on-mount.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .team-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .about-header h1 {
+    font-size: 2rem;
+  }
+
+  .about-description {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Club Page Styles */
+.club-page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.club-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.club-header h1 {
+  color: #21255b;
+  margin: 0;
+}
+
+.club-header p {
+  color: #666;
+  margin: 5px 0 0;
+}
+
+.club-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.club-search-section,
+.club-following-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.club-search-section h2,
+.club-following-section h2 {
+  color: #21255b;
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+}
+
+.club-search {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.club-search input {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.club-search input:focus {
+  outline: none;
+  border-color: #21255b;
+  box-shadow: 0 0 5px rgba(33, 37, 91, 0.2);
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  margin-top: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+  background-color: #f5f5f5;
+}
+
+.account-info {
+  flex: 1;
+}
+
+.account-name {
+  font-weight: bold;
+  color: #21255b;
+  margin-bottom: 4px;
+}
+
+.account-handle {
+  color: #666;
+  font-size: 14px;
+}
+
+.follow-btn {
+  background-color: #21255b;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.follow-btn:hover {
+  background-color: #eac261;
+}
+
+.no-results {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.club-following-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.club-following-item {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.club-following-item:hover {
+  transform: translateX(5px);
+}
+
+.following-info {
+  flex: 1;
+}
+
+.following-name {
+  font-weight: bold;
+  color: #21255b;
+  margin-bottom: 4px;
+}
+
+.following-handle {
+  color: #666;
+  font-size: 14px;
+}
+
+.unfollow-btn {
+  background: none;
+  border: 1px solid #eac261;
+  color: #eac261;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.unfollow-btn:hover {
+  background-color: #eac261;
+  color: white;
+}
+
+.no-following {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .club-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .club-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .club-search input {
+    font-size: 14px;
+  }
+  
+  .search-result-item {
+    padding: 10px 15px;
+  }
+  
+  .club-following-item {
+    padding: 12px 15px;
+  }
+}
+
+.club-settings-btn {
+  background-color: #eac261;
+  color: #21255b;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.club-settings-btn:hover {
+  background-color: #d4b54f;
+}

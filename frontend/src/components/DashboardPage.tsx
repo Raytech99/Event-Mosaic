@@ -5,6 +5,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import '../App.css';
 import { buildPath, API_ROUTES } from '../utils/api';
 import { checkAndClearToken } from '../utils/tokenUtils';
+import LoadingScreen from './LoadingScreen';
+import { useNavigate } from 'react-router-dom';
 
 interface Event {
   _id?: {
@@ -64,6 +66,7 @@ const DashboardPage: React.FC = () => {
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check token expiration first
@@ -150,7 +153,20 @@ const DashboardPage: React.FC = () => {
         updatedAt: event.updatedAt ? { $date: event.updatedAt.$date || event.updatedAt } : null
       }));
       
-      setEvents(formattedEvents);
+      // Get user data and followed accounts
+      const userData = localStorage.getItem('user');
+      const followedAccounts = userData ? JSON.parse(userData).followedAccounts || [] : [];
+      
+      // Filter events: keep all user events and only AI events from followed accounts
+      const filteredEvents = formattedEvents.filter(event => {
+        if (event.source === 'user') return true;
+        if (event.source === 'ai') {
+          return followedAccounts.includes(event.handle);
+        }
+        return false;
+      });
+      
+      setEvents(filteredEvents);
     } catch (error: unknown) {
       console.error('Error fetching events:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unable to load events';
@@ -526,7 +542,7 @@ const DashboardPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingScreen message="Loading your events..." />;
   }
 
   if (error) {
@@ -555,6 +571,9 @@ const DashboardPage: React.FC = () => {
                   : 'User'}
               </span>
             </div>
+            <button className="club-settings-btn" onClick={() => navigate('/club')}>
+              Club Page
+            </button>
             <button className="logout-btn" onClick={handleLogout}>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
