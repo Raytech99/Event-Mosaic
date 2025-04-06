@@ -10,6 +10,7 @@ const DashboardPage = lazy(() => import('./components/DashboardPage'));
 const ForgotPasswordPage = lazy(() => import('./components/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage'));
 const AboutPage = lazy(() => import('./components/AboutPage'));
+const ClubPage = lazy(() => import('./components/ClubPage'));
 
 const App: React.FC = () => {
   // Check if user is authenticated
@@ -33,6 +34,10 @@ const App: React.FC = () => {
           <Route
             path="/dashboard"
             element={isAuthenticated() ? <DashboardPage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/club"
+            element={isAuthenticated() ? <ClubPage /> : <Navigate to="/login" />}
           />
           <Route path="/api-docs/*" element={handleApiRoute()} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
