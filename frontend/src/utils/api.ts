@@ -17,5 +17,7 @@ export const API_ROUTES = {
     EVENTS: 'api/events',
     EVENT: (id: string) => `api/events/${id}`,
     FORGOT_PASSWORD: 'api/auth/forgot-password',
-    RESET_PASSWORD: '/api/auth/reset-password'
+    RESET_PASSWORD: '/api/auth/reset-password',
+    INSTAGRAM_ACCOUNTS: 'api/instagram/accounts',
+    UPDATE_FOLLOWED_ACCOUNTS: 'api/auth/update-followed-accounts'
 }; 
